@@ -37,6 +37,8 @@ export function SettingsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [notificationPermission, setNotificationPermission] = useState(initialPermission)
+  const [showRemindersPanel, setShowRemindersPanel] = useState(false)
+  const [showDataControlsPanel, setShowDataControlsPanel] = useState(false)
 
   useEffect(() => {
     let cleanup: (() => void) | null = null
@@ -59,6 +61,7 @@ export function SettingsPage() {
         const row = await fetchOrCreateUserSettings()
         setSettings(row)
         setDraft(toDraft(row))
+        setShowRemindersPanel(row.reminders_enabled)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to load settings'
         setErrorMessage(message)
@@ -213,91 +216,122 @@ export function SettingsPage() {
       </article>
 
       <article className="panel stack-sm">
-        <h2>Reminders (best-effort in v1)</h2>
-
-        <label className="toggle-row" htmlFor="reminders-enabled">
-          <input
-            checked={draft.remindersEnabled}
-            id="reminders-enabled"
-            onChange={(event) =>
-              setDraft((previous) =>
-                previous
-                  ? {
-                      ...previous,
-                      remindersEnabled: event.target.checked,
-                    }
-                  : previous,
-              )
-            }
-            type="checkbox"
-          />
-          Enable browser reminders
-        </label>
-
-        <label className="form-row form-row-compact" htmlFor="daily-reminder-time">
-          Daily reminder time
-          <input
-            id="daily-reminder-time"
-            onChange={(event) =>
-              setDraft((previous) =>
-                previous
-                  ? {
-                      ...previous,
-                      dailyReminderTime: event.target.value,
-                    }
-                  : previous,
-              )
-            }
-            type="time"
-            value={draft.dailyReminderTime}
-          />
-        </label>
-
-        <label className="form-row form-row-compact" htmlFor="weekly-reminder-time">
-          Weekly review reminder time
-          <input
-            id="weekly-reminder-time"
-            onChange={(event) =>
-              setDraft((previous) =>
-                previous
-                  ? {
-                      ...previous,
-                      weeklyReviewReminderTime: event.target.value,
-                    }
-                  : previous,
-              )
-            }
-            type="time"
-            value={draft.weeklyReviewReminderTime}
-          />
-        </label>
-
-        <p className="hint">{reminderCapabilityText}</p>
-
-        <div className="actions-row">
-          <button className="btn btn-secondary" onClick={() => void handleRequestPermission()} type="button">
-            Request permission
-          </button>
-          <button className="btn btn-secondary" onClick={handleTestNotification} type="button">
-            Send test notification
+        <div className="section-head">
+          <h2>Reminders (best-effort in v1)</h2>
+          <button
+            aria-controls="settings-reminders-panel"
+            aria-expanded={showRemindersPanel}
+            className="btn btn-secondary"
+            onClick={() => setShowRemindersPanel((current) => !current)}
+            type="button"
+          >
+            {showRemindersPanel ? 'Close' : 'Configure reminders'}
           </button>
         </div>
+
+        {showRemindersPanel ? (
+          <div className="stack-sm form-disclosure" id="settings-reminders-panel">
+            <label className="toggle-row" htmlFor="reminders-enabled">
+              <input
+                checked={draft.remindersEnabled}
+                id="reminders-enabled"
+                onChange={(event) =>
+                  setDraft((previous) =>
+                    previous
+                      ? {
+                          ...previous,
+                          remindersEnabled: event.target.checked,
+                        }
+                      : previous,
+                  )
+                }
+                type="checkbox"
+              />
+              Enable browser reminders
+            </label>
+
+            <label className="form-row form-row-compact" htmlFor="daily-reminder-time">
+              Daily reminder time
+              <input
+                id="daily-reminder-time"
+                onChange={(event) =>
+                  setDraft((previous) =>
+                    previous
+                      ? {
+                          ...previous,
+                          dailyReminderTime: event.target.value,
+                        }
+                      : previous,
+                  )
+                }
+                type="time"
+                value={draft.dailyReminderTime}
+              />
+            </label>
+
+            <label className="form-row form-row-compact" htmlFor="weekly-reminder-time">
+              Weekly review reminder time
+              <input
+                id="weekly-reminder-time"
+                onChange={(event) =>
+                  setDraft((previous) =>
+                    previous
+                      ? {
+                          ...previous,
+                          weeklyReviewReminderTime: event.target.value,
+                        }
+                      : previous,
+                  )
+                }
+                type="time"
+                value={draft.weeklyReviewReminderTime}
+              />
+            </label>
+
+            <p className="hint">{reminderCapabilityText}</p>
+
+            <div className="actions-row">
+              <button className="btn btn-secondary" onClick={() => void handleRequestPermission()} type="button">
+                Request permission
+              </button>
+              <button className="btn btn-secondary" onClick={handleTestNotification} type="button">
+                Send test notification
+              </button>
+            </div>
+          </div>
+        ) : null}
       </article>
 
       <article className="panel stack-sm">
-        <h2>Data controls</h2>
-        <p className="muted">
-          v1 supports deleting all app data. Auth account deletion is deferred to v1.1.
-        </p>
+        <div className="section-head">
+          <h2>Data controls</h2>
+          <button
+            aria-controls="settings-data-controls"
+            aria-expanded={showDataControlsPanel}
+            className="btn btn-secondary"
+            onClick={() => setShowDataControlsPanel((current) => !current)}
+            type="button"
+          >
+            {showDataControlsPanel ? 'Close' : 'Open danger zone'}
+          </button>
+        </div>
 
-        <button
-          className="btn btn-secondary"
-          disabled={busyKey === 'purge-data'}
-          onClick={() => void handlePurgeData()}
-          type="button"
-        >
-          {busyKey === 'purge-data' ? 'Deleting...' : 'Delete all app data'}
-        </button>
+        {showDataControlsPanel ? (
+          <div className="stack-sm form-disclosure" id="settings-data-controls">
+            <p className="muted">
+              v1 supports deleting all app data. Auth account deletion is deferred to v1.1.
+            </p>
+
+            <button
+              className="btn btn-secondary"
+              disabled={busyKey === 'purge-data'}
+              onClick={() => void handlePurgeData()}
+              type="button"
+            >
+              {busyKey === 'purge-data' ? 'Deleting...' : 'Delete all app data'}
+            </button>
+          </div>
+        ) : null}
       </article>
 
       <button

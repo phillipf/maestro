@@ -190,7 +190,7 @@ export function SettingsPage() {
       <article className="panel stack-sm">
         <h2>Weekly behavior</h2>
 
-        <label className="form-row" htmlFor="start-of-week">
+        <label className="form-row form-row-medium" htmlFor="start-of-week">
           Start of week
           <select
             id="start-of-week"
@@ -234,7 +234,7 @@ export function SettingsPage() {
           Enable browser reminders
         </label>
 
-        <label className="form-row" htmlFor="daily-reminder-time">
+        <label className="form-row form-row-compact" htmlFor="daily-reminder-time">
           Daily reminder time
           <input
             id="daily-reminder-time"
@@ -253,7 +253,7 @@ export function SettingsPage() {
           />
         </label>
 
-        <label className="form-row" htmlFor="weekly-reminder-time">
+        <label className="form-row form-row-compact" htmlFor="weekly-reminder-time">
           Weekly review reminder time
           <input
             id="weekly-reminder-time"

@@ -552,7 +552,7 @@ export function MetricsPage() {
             <LineChart entries={[...entries].reverse()} unit={metric.unit} />
 
             <div className="metric-entry-form">
-              <label className="form-row" htmlFor={`entry-date-${metric.id}`}>
+              <label className="form-row form-row-medium" htmlFor={`entry-date-${metric.id}`}>
                 Date
                 <input
                   id={`entry-date-${metric.id}`}
@@ -567,7 +567,7 @@ export function MetricsPage() {
                 />
               </label>
 
-              <label className="form-row" htmlFor={`entry-value-${metric.id}`}>
+              <label className="form-row form-row-compact" htmlFor={`entry-value-${metric.id}`}>
                 Value
                 <input
                   id={`entry-value-${metric.id}`}

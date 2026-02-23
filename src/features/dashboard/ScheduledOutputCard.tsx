@@ -245,7 +245,10 @@ export function ScheduledOutputCard({
 
                         {draftRow.selected ? (
                           <div className="skill-mini-form">
-                            <label className="form-row" htmlFor={`confidence-${output.id}-${skill.id}`}>
+                            <label
+                              className="form-row form-row-compact"
+                              htmlFor={`confidence-${output.id}-${skill.id}`}
+                            >
                               Confidence (1-5)
                               <input
                                 id={`confidence-${output.id}-${skill.id}`}
@@ -265,7 +268,10 @@ export function ScheduledOutputCard({
                             </label>
 
                             {skill.target_label && skill.target_value !== null ? (
-                              <label className="form-row" htmlFor={`target-result-${output.id}-${skill.id}`}>
+                              <label
+                                className="form-row form-row-compact"
+                                htmlFor={`target-result-${output.id}-${skill.id}`}
+                              >
                                 {skill.target_label}
                                 <input
                                   id={`target-result-${output.id}-${skill.id}`}
@@ -319,7 +325,10 @@ export function ScheduledOutputCard({
 
                         {draftRow.selected ? (
                           <div className="skill-mini-form">
-                            <label className="form-row" htmlFor={`confidence-all-${output.id}-${skill.id}`}>
+                            <label
+                              className="form-row form-row-compact"
+                              htmlFor={`confidence-all-${output.id}-${skill.id}`}
+                            >
                               Confidence (1-5)
                               <input
                                 id={`confidence-all-${output.id}-${skill.id}`}
@@ -339,7 +348,10 @@ export function ScheduledOutputCard({
                             </label>
 
                             {skill.target_label && skill.target_value !== null ? (
-                              <label className="form-row" htmlFor={`target-all-${output.id}-${skill.id}`}>
+                              <label
+                                className="form-row form-row-compact"
+                                htmlFor={`target-all-${output.id}-${skill.id}`}
+                              >
                                 {skill.target_label}
                                 <input
                                   id={`target-all-${output.id}-${skill.id}`}

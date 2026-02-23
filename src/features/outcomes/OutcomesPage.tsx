@@ -720,7 +720,10 @@ export function OutcomesPage() {
                                 />
                               </label>
 
-                              <label className="form-row" htmlFor={`edit-output-frequency-${output.id}`}>
+                              <label
+                                className="form-row form-row-medium"
+                                htmlFor={`edit-output-frequency-${output.id}`}
+                              >
                                 Frequency
                                 <select
                                   id={`edit-output-frequency-${output.id}`}
@@ -740,7 +743,10 @@ export function OutcomesPage() {
                               </label>
 
                               {draft.frequency_type === 'flexible_weekly' ? (
-                                <label className="form-row" htmlFor={`edit-output-value-${output.id}`}>
+                                <label
+                                  className="form-row form-row-compact"
+                                  htmlFor={`edit-output-value-${output.id}`}
+                                >
                                   Target per week
                                   <input
                                     id={`edit-output-value-${output.id}`}
@@ -804,7 +810,10 @@ export function OutcomesPage() {
                     />
                   </label>
 
-                  <label className="form-row" htmlFor={`new-output-frequency-${outcome.id}`}>
+                  <label
+                    className="form-row form-row-medium"
+                    htmlFor={`new-output-frequency-${outcome.id}`}
+                  >
                     Frequency
                     <select
                       id={`new-output-frequency-${outcome.id}`}
@@ -824,7 +833,10 @@ export function OutcomesPage() {
                   </label>
 
                   {createDraft.frequency_type === 'flexible_weekly' ? (
-                    <label className="form-row" htmlFor={`new-output-value-${outcome.id}`}>
+                    <label
+                      className="form-row form-row-compact"
+                      htmlFor={`new-output-value-${outcome.id}`}
+                    >
                       Target per week
                       <input
                         id={`new-output-value-${outcome.id}`}

@@ -143,7 +143,8 @@ select {
 .kpi-grid {
   display: grid;
   gap: 0.85rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 240px));
+  justify-content: start;
 }
 
 .kpi-card {
@@ -198,6 +199,14 @@ select {
 .form-row {
   display: grid;
   gap: 0.4rem;
+}
+
+.form-row-compact {
+  width: min(100%, 14rem);
+}
+
+.form-row-medium {
+  width: min(100%, 18rem);
 }
 
 input,
@@ -466,7 +475,12 @@ select {
 .metric-entry-form {
   display: grid;
   gap: 0.65rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 240px));
+  justify-content: start;
+}
+
+.metric-entry-form .btn {
+  justify-self: start;
 }
 
 .entry-row {
@@ -548,7 +562,8 @@ select {
 .skill-mini-form {
   display: grid;
   gap: 0.45rem;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
+  justify-content: start;
 }
 
 @media (max-width: 880px) {
@@ -577,6 +592,10 @@ select {
 }
 
 @media (max-width: 560px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .action-form-grid {
     grid-template-columns: 1fr;
   }

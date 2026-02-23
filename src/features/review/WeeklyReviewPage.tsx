@@ -453,7 +453,7 @@ export function WeeklyReviewPage() {
           </button>
         </div>
 
-        <label className="form-row" htmlFor="weekly-anchor-date">
+        <label className="form-row form-row-medium" htmlFor="weekly-anchor-date">
           Anchor date
           <input
             id="weekly-anchor-date"

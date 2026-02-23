@@ -440,7 +440,7 @@ export function DashboardPage() {
       ) : null}
 
       <article className="panel dashboard-controls">
-        <label className="form-row" htmlFor="dashboard-date">
+        <label className="form-row form-row-medium" htmlFor="dashboard-date">
           Log date (current week only)
           <input
             id="dashboard-date"

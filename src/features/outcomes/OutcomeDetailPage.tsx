@@ -399,7 +399,7 @@ export function OutcomeDetailPage() {
             />
           </label>
 
-          <label className="form-row" htmlFor="skill-target-value">
+          <label className="form-row form-row-compact" htmlFor="skill-target-value">
             Target value (optional)
             <input
               id="skill-target-value"
@@ -415,7 +415,7 @@ export function OutcomeDetailPage() {
             />
           </label>
 
-          <label className="form-row" htmlFor="skill-initial-confidence">
+          <label className="form-row form-row-compact" htmlFor="skill-initial-confidence">
             Initial confidence
             <input
               id="skill-initial-confidence"

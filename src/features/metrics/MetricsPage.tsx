@@ -42,6 +42,7 @@ export function MetricsPage() {
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [showCreateMetricForm, setShowCreateMetricForm] = useState(false)
 
   const [metricDraft, setMetricDraft] = useState<MetricDraft>({
     outcomeId: '',
@@ -59,6 +60,7 @@ export function MetricsPage() {
     try {
       const data = await fetchMetricsPayload()
       setPayload(data)
+      setShowCreateMetricForm(data.metrics.length === 0)
 
       setMetricDraft((previous) => ({
         ...previous,
@@ -156,6 +158,7 @@ export function MetricsPage() {
         unit: '',
         isPrimary: false,
       }))
+      setShowCreateMetricForm(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create metric'
       setErrorMessage(message)
@@ -427,77 +430,104 @@ export function MetricsPage() {
       {errorMessage ? <p className="status-bad">{errorMessage}</p> : null}
 
       <article className="panel stack-sm">
-        <h2>Add metric</h2>
-
-        <div className="field-grid">
-          <label className="form-row" htmlFor="metric-outcome">
-            Outcome
-            <select
-              id="metric-outcome"
-              onChange={(event) =>
-                setMetricDraft((previous) => ({
-                  ...previous,
-                  outcomeId: event.target.value,
-                }))
-              }
-              value={metricDraft.outcomeId}
-            >
-              {payload?.outcomes.map((outcome) => (
-                <option key={outcome.id} value={outcome.id}>
-                  {outcome.title}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-row" htmlFor="metric-name">
-            Name
-            <input
-              id="metric-name"
-              onChange={(event) =>
-                setMetricDraft((previous) => ({
-                  ...previous,
-                  name: event.target.value,
-                }))
-              }
-              value={metricDraft.name}
-            />
-          </label>
-
-          <label className="form-row" htmlFor="metric-unit">
-            Unit label
-            <input
-              id="metric-unit"
-              onChange={(event) =>
-                setMetricDraft((previous) => ({
-                  ...previous,
-                  unit: event.target.value,
-                }))
-              }
-              placeholder="kg, lbs, %, reps"
-              value={metricDraft.unit}
-            />
-          </label>
-
-          <label className="toggle-row" htmlFor="metric-primary">
-            <input
-              checked={metricDraft.isPrimary}
-              id="metric-primary"
-              onChange={(event) =>
-                setMetricDraft((previous) => ({
-                  ...previous,
-                  isPrimary: event.target.checked,
-                }))
-              }
-              type="checkbox"
-            />
-            Set as primary metric for this outcome
-          </label>
-
-          <button className="btn" disabled={busyKey === 'create-metric'} onClick={() => void handleCreateMetric()} type="button">
-            {busyKey === 'create-metric' ? 'Creating...' : 'Create metric'}
+        <div className="section-head">
+          <h2>Add metric</h2>
+          <button
+            aria-controls="create-metric-form"
+            aria-expanded={showCreateMetricForm}
+            className="btn btn-secondary"
+            onClick={() => setShowCreateMetricForm((current) => !current)}
+            type="button"
+          >
+            {showCreateMetricForm ? 'Close' : 'Add metric'}
           </button>
         </div>
+
+        {showCreateMetricForm ? (
+          <div className="field-grid form-disclosure" id="create-metric-form">
+            <label className="form-row" htmlFor="metric-outcome">
+              Outcome
+              <select
+                id="metric-outcome"
+                onChange={(event) =>
+                  setMetricDraft((previous) => ({
+                    ...previous,
+                    outcomeId: event.target.value,
+                  }))
+                }
+                value={metricDraft.outcomeId}
+              >
+                {payload?.outcomes.map((outcome) => (
+                  <option key={outcome.id} value={outcome.id}>
+                    {outcome.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-row" htmlFor="metric-name">
+              Name
+              <input
+                id="metric-name"
+                onChange={(event) =>
+                  setMetricDraft((previous) => ({
+                    ...previous,
+                    name: event.target.value,
+                  }))
+                }
+                value={metricDraft.name}
+              />
+            </label>
+
+            <label className="form-row" htmlFor="metric-unit">
+              Unit label
+              <input
+                id="metric-unit"
+                onChange={(event) =>
+                  setMetricDraft((previous) => ({
+                    ...previous,
+                    unit: event.target.value,
+                  }))
+                }
+                placeholder="kg, lbs, %, reps"
+                value={metricDraft.unit}
+              />
+            </label>
+
+            <label className="toggle-row" htmlFor="metric-primary">
+              <input
+                checked={metricDraft.isPrimary}
+                id="metric-primary"
+                onChange={(event) =>
+                  setMetricDraft((previous) => ({
+                    ...previous,
+                    isPrimary: event.target.checked,
+                  }))
+                }
+                type="checkbox"
+              />
+              Set as primary metric for this outcome
+            </label>
+
+            <div className="actions-row">
+              <button
+                className="btn"
+                disabled={busyKey === 'create-metric'}
+                onClick={() => void handleCreateMetric()}
+                type="button"
+              >
+                {busyKey === 'create-metric' ? 'Creating...' : 'Create metric'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCreateMetricForm(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
       </article>
 
       {payload?.metrics.length === 0 ? <article className="panel">No metrics yet.</article> : null}

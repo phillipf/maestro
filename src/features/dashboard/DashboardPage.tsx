@@ -10,15 +10,13 @@ import {
 import {
   buildSelectedSkillEntries,
   buildSkillDraftsFromExistingLogs,
-  createEmptySkillLogDraft,
   createLogDraft,
-  frequencyDescription,
   runGraduationPromptFlow,
-  scoreLabel,
   toLocalDateInputValue,
   type LogDraft,
   type SkillLogDraft,
 } from './dashboardWorkflows'
+import { ScheduledOutputCard, type ScheduledOutput } from './ScheduledOutputCard'
 import type { DashboardOutput, DailyDashboardPayload } from './types'
 import {
   checkGraduationEligibility,
@@ -30,12 +28,6 @@ import {
 } from '../skills/skillsApi'
 import { computePriorityQueue } from '../skills/priority'
 import type { SkillItemRow, SkillLogRow, SkillPriority } from '../skills/types'
-
-type ScheduledOutput = {
-  outcomeId: string
-  outcomeTitle: string
-  output: DashboardOutput
-}
 
 export function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateInputValue())
@@ -225,7 +217,11 @@ export function DashboardPage() {
   ) {
     setSkillLogDraftsByOutput((previous) => {
       const outputDraft = previous[outputId] ?? {}
-      const skillDraft = outputDraft[skillId] ?? createEmptySkillLogDraft()
+      const skillDraft = outputDraft[skillId] ?? {
+        selected: false,
+        confidence: 3,
+        targetResult: '',
+      }
 
       return {
         ...previous,
@@ -484,12 +480,11 @@ export function DashboardPage() {
       ) : (
         <div className="stack">
           {scheduledOutputs.map((row) => {
-            const { output, outcomeId, outcomeTitle } = row
+            const { output, outcomeId } = row
             const draft = logDrafts[output.id] ?? createLogDraft(output)
             const saveKey = `save-${output.id}`
             const actionLog = actionLogByOutputId[output.id]
             const hasSkills = (skillsByOutcome[outcomeId] ?? []).length > 0
-            const showSkillPrompt = Boolean(actionLog && actionLog.completed > 0 && hasSkills)
             const isSaving =
               busyKey === saveKey ||
               busyKey === `quick-done-${output.id}` ||
@@ -497,8 +492,8 @@ export function DashboardPage() {
             const isSkillPanelBusy =
               busyKey === `save-skills-${output.id}` ||
               busyKey === `load-skill-panel-${output.id}`
-
             const drafts = skillLogDraftsByOutput[output.id] ?? {}
+
             const outcomeSkills = (skillsByOutcome[outcomeId] ?? [])
               .slice()
               .sort((left, right) => {
@@ -506,273 +501,36 @@ export function DashboardPage() {
                 const rightScore = skillScoreById[right.id] ?? -1
                 return rightScore - leftScore
               })
+
             const suggested = suggestedByOutcome[outcomeId] ?? []
             const suggestedIds = new Set(suggested.map((item) => item.skill.id))
             const additionalSkills = outcomeSkills.filter((skill) => !suggestedIds.has(skill.id))
 
             return (
-              <article className="panel output-row" key={output.id}>
-                <div className="stack-xs">
-                  <p className="eyebrow">
-                    <Link className="suggested-link" to={`/outcomes/${outcomeId}`}>
-                      {outcomeTitle}
-                    </Link>
-                  </p>
-                  <h3>{output.description}</h3>
-                  <p className="muted">
-                    {frequencyDescription(output)} · Week progress: {output.weekly_progress.completed}/
-                    {output.weekly_progress.target} ({output.weekly_progress.rate}%)
-                  </p>
-                </div>
-
-                <div className="actions-row">
-                  <button
-                    className="btn"
-                    disabled={isSaving}
-                    onClick={() => void markDone(output)}
-                    type="button"
-                  >
-                    Mark done
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    disabled={isSaving}
-                    onClick={() => void markMissed(output)}
-                    type="button"
-                  >
-                    Mark missed
-                  </button>
-                </div>
-
-                <div className="action-form-grid">
-                  <label className="form-row" htmlFor={`completed-${output.id}`}>
-                    Completed
-                    <input
-                      id={`completed-${output.id}`}
-                      min={0}
-                      onChange={(event) =>
-                        setLogDraftValue(output.id, 'completed', Number(event.target.value))
-                      }
-                      type="number"
-                      value={draft.completed}
-                    />
-                  </label>
-
-                  <label className="form-row" htmlFor={`total-${output.id}`}>
-                    Total
-                    <input
-                      id={`total-${output.id}`}
-                      min={0}
-                      onChange={(event) => setLogDraftValue(output.id, 'total', Number(event.target.value))}
-                      type="number"
-                      value={draft.total}
-                    />
-                  </label>
-                </div>
-
-                <label className="form-row" htmlFor={`notes-${output.id}`}>
-                  Notes (optional)
-                  <textarea
-                    id={`notes-${output.id}`}
-                    maxLength={500}
-                    onChange={(event) => setLogDraftValue(output.id, 'notes', event.target.value)}
-                    rows={2}
-                    value={draft.notes}
-                  />
-                </label>
-
-                <button
-                  className="btn"
-                  disabled={isSaving}
-                  onClick={() => void persistLog(output.id, draft, saveKey)}
-                  type="button"
-                >
-                  {isSaving ? 'Saving...' : 'Save log'}
-                </button>
-
-                {showSkillPrompt ? (
-                  <div className="skill-log-shell stack-sm">
-                    <button
-                      className="btn btn-secondary"
-                      disabled={isSkillPanelBusy}
-                      onClick={() => void toggleSkillPanel(row)}
-                      type="button"
-                    >
-                      {expandedSkillOutputId === output.id ? 'Hide skills worked' : 'Log skills worked'}
-                    </button>
-
-                    {expandedSkillOutputId === output.id ? (
-                      <div className="skill-log-panel stack-sm">
-                        {suggested.length > 0 ? (
-                          <div className="stack-xs">
-                            <p className="muted">Suggested today</p>
-                            {suggested.map((item) => {
-                              const skill = item.skill
-                              const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
-
-                              return (
-                                <div className="skill-row" key={`${output.id}-${skill.id}`}>
-                                  <label className="toggle-row" htmlFor={`skill-${output.id}-${skill.id}`}>
-                                    <input
-                                      checked={draftRow.selected}
-                                      id={`skill-${output.id}-${skill.id}`}
-                                      onChange={(event) =>
-                                        setSkillDraftValue(
-                                          output.id,
-                                          skill.id,
-                                          'selected',
-                                          event.target.checked,
-                                        )
-                                      }
-                                      type="checkbox"
-                                    />
-                                    {skill.name} <span className="hint">(priority {scoreLabel(item.finalScore)})</span>
-                                  </label>
-
-                                  {draftRow.selected ? (
-                                    <div className="skill-mini-form">
-                                      <label className="form-row" htmlFor={`confidence-${output.id}-${skill.id}`}>
-                                        Confidence (1-5)
-                                        <input
-                                          id={`confidence-${output.id}-${skill.id}`}
-                                          max={5}
-                                          min={1}
-                                          onChange={(event) =>
-                                            setSkillDraftValue(
-                                              output.id,
-                                              skill.id,
-                                              'confidence',
-                                              Number(event.target.value),
-                                            )
-                                          }
-                                          type="number"
-                                          value={draftRow.confidence}
-                                        />
-                                      </label>
-
-                                      {skill.target_label && skill.target_value !== null ? (
-                                        <label className="form-row" htmlFor={`target-result-${output.id}-${skill.id}`}>
-                                          {skill.target_label}
-                                          <input
-                                            id={`target-result-${output.id}-${skill.id}`}
-                                            onChange={(event) =>
-                                              setSkillDraftValue(
-                                                output.id,
-                                                skill.id,
-                                                'targetResult',
-                                                event.target.value,
-                                              )
-                                            }
-                                            step="any"
-                                            type="number"
-                                            value={draftRow.targetResult}
-                                          />
-                                        </label>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        ) : null}
-
-                        {additionalSkills.length > 0 ? (
-                          <div className="stack-xs">
-                            <p className="muted">All skills</p>
-                            {additionalSkills.map((skill) => {
-                              const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
-
-                              return (
-                                <div className="skill-row" key={`${output.id}-all-${skill.id}`}>
-                                  <label className="toggle-row" htmlFor={`skill-all-${output.id}-${skill.id}`}>
-                                    <input
-                                      checked={draftRow.selected}
-                                      id={`skill-all-${output.id}-${skill.id}`}
-                                      onChange={(event) =>
-                                        setSkillDraftValue(
-                                          output.id,
-                                          skill.id,
-                                          'selected',
-                                          event.target.checked,
-                                        )
-                                      }
-                                      type="checkbox"
-                                    />
-                                    {skill.name} <span className="hint">(priority {scoreLabel(skillScoreById[skill.id])})</span>
-                                  </label>
-
-                                  {draftRow.selected ? (
-                                    <div className="skill-mini-form">
-                                      <label className="form-row" htmlFor={`confidence-all-${output.id}-${skill.id}`}>
-                                        Confidence (1-5)
-                                        <input
-                                          id={`confidence-all-${output.id}-${skill.id}`}
-                                          max={5}
-                                          min={1}
-                                          onChange={(event) =>
-                                            setSkillDraftValue(
-                                              output.id,
-                                              skill.id,
-                                              'confidence',
-                                              Number(event.target.value),
-                                            )
-                                          }
-                                          type="number"
-                                          value={draftRow.confidence}
-                                        />
-                                      </label>
-
-                                      {skill.target_label && skill.target_value !== null ? (
-                                        <label className="form-row" htmlFor={`target-all-${output.id}-${skill.id}`}>
-                                          {skill.target_label}
-                                          <input
-                                            id={`target-all-${output.id}-${skill.id}`}
-                                            onChange={(event) =>
-                                              setSkillDraftValue(
-                                                output.id,
-                                                skill.id,
-                                                'targetResult',
-                                                event.target.value,
-                                              )
-                                            }
-                                            step="any"
-                                            type="number"
-                                            value={draftRow.targetResult}
-                                          />
-                                        </label>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        ) : null}
-
-                        <div className="actions-row">
-                          <button
-                            className="btn"
-                            disabled={isSkillPanelBusy}
-                            onClick={() => void saveSkillsForOutput(row)}
-                            type="button"
-                          >
-                            {busyKey === `save-skills-${output.id}` ? 'Saving...' : 'Save skills'}
-                          </button>
-                          <button
-                            className="btn btn-secondary"
-                            disabled={isSkillPanelBusy}
-                            onClick={() => setExpandedSkillOutputId(null)}
-                            type="button"
-                          >
-                            Skip - just log output
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </article>
+              <ScheduledOutputCard
+                actionLog={actionLog}
+                additionalSkills={additionalSkills}
+                busyKey={busyKey}
+                draft={draft}
+                drafts={drafts}
+                expandedSkillOutputId={expandedSkillOutputId}
+                hasSkills={hasSkills}
+                isSaving={isSaving}
+                isSkillPanelBusy={isSkillPanelBusy}
+                key={output.id}
+                onCloseSkillPanel={() => setExpandedSkillOutputId(null)}
+                onMarkDone={(outputRow) => markDone(outputRow)}
+                onMarkMissed={(outputRow) => markMissed(outputRow)}
+                onPersistLog={(outputId, draftRow, opKey) => persistLog(outputId, draftRow, opKey)}
+                onSaveSkillsForOutput={(outputRow) => saveSkillsForOutput(outputRow)}
+                onSetLogDraftValue={setLogDraftValue}
+                onSetSkillDraftValue={setSkillDraftValue}
+                onToggleSkillPanel={(outputRow) => toggleSkillPanel(outputRow)}
+                row={row}
+                saveKey={saveKey}
+                skillScoreById={skillScoreById}
+                suggested={suggested}
+              />
             )
           })}
         </div>

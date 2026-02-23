@@ -18,7 +18,7 @@ export function AppLayout() {
       <header className="topbar panel">
         <div>
           <p className="eyebrow">Outcome & Output Framework</p>
-          <p className="brand">Outputs To Outcomes</p>
+          <p className="brand">Maestro</p>
         </div>
 
         <nav className="nav-links" aria-label="Primary">

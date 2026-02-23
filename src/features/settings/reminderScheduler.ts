@@ -56,7 +56,7 @@ export function startReminderScheduler(settings: UserSettingsRow): () => void {
       const key = `daily-reminder:${dateKey()}`
       if (!window.localStorage.getItem(key)) {
         new Notification('Daily output reminder', {
-          body: 'Log today\'s outputs in Outputs To Outcomes.',
+          body: 'Log today\'s outputs in Maestro.',
         })
         window.localStorage.setItem(key, '1')
       }

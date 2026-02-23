@@ -1,6 +1,6 @@
 {
-  "name": "Outputs To Outcomes",
-  "short_name": "O2O",
+  "name": "Maestro",
+  "short_name": "Maestro",
   "description": "Outcome and Output Framework app",
   "start_url": "/",
   "display": "standalone",

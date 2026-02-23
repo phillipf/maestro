@@ -1,4 +1,4 @@
--- Initial v1 schema for Outputs To Outcomes
+-- Initial v1 schema for Maestro
 
 create extension if not exists pgcrypto;
 

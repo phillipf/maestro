@@ -1,6 +1,6 @@
 # Supabase Schema
 
-This folder contains SQL migrations for the Outputs To Outcomes app.
+This folder contains SQL migrations for the Maestro app.
 
 ## Files
 

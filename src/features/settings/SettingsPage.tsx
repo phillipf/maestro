@@ -132,7 +132,7 @@ export function SettingsPage() {
       return
     }
 
-    new Notification('Outputs To Outcomes', {
+    new Notification('Maestro', {
       body: 'Test reminder delivered. Browser reminders are best-effort in v1.',
     })
   }

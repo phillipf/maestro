@@ -49,7 +49,7 @@ export function AuthPage() {
   return (
     <main className="auth-shell">
       <section className="auth-card panel">
-        <p className="eyebrow">Outputs To Outcomes</p>
+        <p className="eyebrow">Maestro</p>
         <h1>Sign in</h1>
         <p className="muted">Use your allowlisted email to receive a magic link.</p>
 

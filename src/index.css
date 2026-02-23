@@ -311,11 +311,11 @@ select {
   align-items: stretch;
   display: grid;
   gap: 0.35rem;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .number-stepper {
-  display: grid;
+  display: none;
   gap: 0.2rem;
   grid-template-rows: repeat(2, minmax(0, 1fr));
 }
@@ -339,6 +339,16 @@ select {
 .number-step-btn:disabled {
   cursor: default;
   opacity: 0.55;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .number-input-shell {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .number-stepper {
+    display: grid;
+  }
 }
 
 .weekday-row {

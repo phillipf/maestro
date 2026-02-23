@@ -295,6 +295,10 @@ select {
   min-width: 0;
 }
 
+.numeric-log-field {
+  width: min(100%, 16rem);
+}
+
 .action-form-grid input[type='number'] {
   appearance: auto;
   min-width: 0;

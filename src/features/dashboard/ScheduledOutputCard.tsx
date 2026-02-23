@@ -115,7 +115,7 @@ export function ScheduledOutputCard({
       </div>
 
       <div className="action-form-grid">
-        <label className="form-row" htmlFor={`completed-${output.id}`}>
+        <label className="form-row numeric-log-field" htmlFor={`completed-${output.id}`}>
           Completed
           <div className="number-input-shell">
             <input
@@ -150,7 +150,7 @@ export function ScheduledOutputCard({
           </div>
         </label>
 
-        <label className="form-row" htmlFor={`total-${output.id}`}>
+        <label className="form-row numeric-log-field" htmlFor={`total-${output.id}`}>
           Total
           <div className="number-input-shell">
             <input

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ActionLogLookupRow } from './dashboardApi'
@@ -75,10 +76,12 @@ export function ScheduledOutputCard({
 }: ScheduledOutputCardProps) {
   const { output, outcomeId, outcomeTitle } = row
   const showSkillPrompt = Boolean(actionLog && actionLog.completed > 0 && hasSkills)
+  const [showNotesField, setShowNotesField] = useState(() => draft.notes.trim().length > 0)
   const adjustDraftNumber = (key: 'completed' | 'total', delta: number) => {
     const nextValue = Math.max(0, draft[key] + delta)
     onSetLogDraftValue(output.id, key, nextValue)
   }
+  const notesVisible = showNotesField
 
   return (
     <article className="panel output-row" key={output.id}>
@@ -184,16 +187,30 @@ export function ScheduledOutputCard({
         </label>
       </div>
 
-      <label className="form-row" htmlFor={`notes-${output.id}`}>
-        Notes (optional)
-        <textarea
-          id={`notes-${output.id}`}
-          maxLength={500}
-          onChange={(event) => onSetLogDraftValue(output.id, 'notes', event.target.value)}
-          rows={2}
-          value={draft.notes}
-        />
-      </label>
+      <div className="section-head">
+        <p className="muted">Notes (optional)</p>
+        <button
+          aria-controls={`notes-panel-${output.id}`}
+          aria-expanded={notesVisible}
+          className="btn btn-secondary"
+          onClick={() => setShowNotesField((current) => !current)}
+          type="button"
+        >
+          {notesVisible ? 'Hide note' : 'Add note'}
+        </button>
+      </div>
+
+      {notesVisible ? (
+        <label className="form-row" htmlFor={`notes-${output.id}`} id={`notes-panel-${output.id}`}>
+          <textarea
+            id={`notes-${output.id}`}
+            maxLength={500}
+            onChange={(event) => onSetLogDraftValue(output.id, 'notes', event.target.value)}
+            rows={2}
+            value={draft.notes}
+          />
+        </label>
+      ) : null}
 
       <button
         className="btn"

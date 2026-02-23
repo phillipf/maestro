@@ -75,6 +75,7 @@ export function OutcomeDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [showAddSkillForm, setShowAddSkillForm] = useState(false)
 
   const [skillDraft, setSkillDraft] = useState<SkillDraft>({
     name: '',
@@ -104,6 +105,7 @@ export function OutcomeDetailPage() {
       setOutputs(outputRows)
       setSkills(skillData.skills)
       setSkillLogs(skillData.logs)
+      setShowAddSkillForm(skillData.skills.length === 0)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load outcome detail'
       setErrorMessage(message)
@@ -210,6 +212,7 @@ export function OutcomeDetailPage() {
         targetValue: '',
         initialConfidence: 1,
       })
+      setShowAddSkillForm(false)
 
       await loadData()
     } catch (error) {
@@ -368,79 +371,101 @@ export function OutcomeDetailPage() {
       </article>
 
       <article className="panel stack-sm">
-        <h2>Add skill</h2>
-
-        <div className="field-grid">
-          <label className="form-row" htmlFor="skill-name">
-            Name
-            <input
-              id="skill-name"
-              onChange={(event) =>
-                setSkillDraft((previous) => ({
-                  ...previous,
-                  name: event.target.value,
-                }))
-              }
-              value={skillDraft.name}
-            />
-          </label>
-
-          <label className="form-row" htmlFor="skill-target-label">
-            Target label (optional)
-            <input
-              id="skill-target-label"
-              onChange={(event) =>
-                setSkillDraft((previous) => ({
-                  ...previous,
-                  targetLabel: event.target.value,
-                }))
-              }
-              value={skillDraft.targetLabel}
-            />
-          </label>
-
-          <label className="form-row form-row-compact" htmlFor="skill-target-value">
-            Target value (optional)
-            <input
-              id="skill-target-value"
-              onChange={(event) =>
-                setSkillDraft((previous) => ({
-                  ...previous,
-                  targetValue: event.target.value,
-                }))
-              }
-              step="any"
-              type="number"
-              value={skillDraft.targetValue}
-            />
-          </label>
-
-          <label className="form-row form-row-compact" htmlFor="skill-initial-confidence">
-            Initial confidence
-            <input
-              id="skill-initial-confidence"
-              max={5}
-              min={1}
-              onChange={(event) =>
-                setSkillDraft((previous) => ({
-                  ...previous,
-                  initialConfidence: Number(event.target.value),
-                }))
-              }
-              type="number"
-              value={skillDraft.initialConfidence}
-            />
-          </label>
-
+        <div className="section-head">
+          <h2>Add skill</h2>
           <button
-            className="btn"
-            disabled={busyKey === 'create-skill'}
-            onClick={() => void handleCreateSkill()}
+            aria-controls="add-skill-form"
+            aria-expanded={showAddSkillForm}
+            className="btn btn-secondary"
+            onClick={() => setShowAddSkillForm((current) => !current)}
             type="button"
           >
-            {busyKey === 'create-skill' ? 'Creating...' : 'Create skill'}
+            {showAddSkillForm ? 'Close' : 'Add skill'}
           </button>
         </div>
+
+        {showAddSkillForm ? (
+          <div className="field-grid form-disclosure" id="add-skill-form">
+            <label className="form-row" htmlFor="skill-name">
+              Name
+              <input
+                id="skill-name"
+                onChange={(event) =>
+                  setSkillDraft((previous) => ({
+                    ...previous,
+                    name: event.target.value,
+                  }))
+                }
+                value={skillDraft.name}
+              />
+            </label>
+
+            <label className="form-row" htmlFor="skill-target-label">
+              Target label (optional)
+              <input
+                id="skill-target-label"
+                onChange={(event) =>
+                  setSkillDraft((previous) => ({
+                    ...previous,
+                    targetLabel: event.target.value,
+                  }))
+                }
+                value={skillDraft.targetLabel}
+              />
+            </label>
+
+            <label className="form-row form-row-compact" htmlFor="skill-target-value">
+              Target value (optional)
+              <input
+                id="skill-target-value"
+                onChange={(event) =>
+                  setSkillDraft((previous) => ({
+                    ...previous,
+                    targetValue: event.target.value,
+                  }))
+                }
+                step="any"
+                type="number"
+                value={skillDraft.targetValue}
+              />
+            </label>
+
+            <label className="form-row form-row-compact" htmlFor="skill-initial-confidence">
+              Initial confidence
+              <input
+                id="skill-initial-confidence"
+                max={5}
+                min={1}
+                onChange={(event) =>
+                  setSkillDraft((previous) => ({
+                    ...previous,
+                    initialConfidence: Number(event.target.value),
+                  }))
+                }
+                type="number"
+                value={skillDraft.initialConfidence}
+              />
+            </label>
+
+            <div className="actions-row">
+              <button
+                className="btn"
+                disabled={busyKey === 'create-skill'}
+                onClick={() => void handleCreateSkill()}
+                type="button"
+              >
+                {busyKey === 'create-skill' ? 'Creating...' : 'Create skill'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddSkillForm(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
       </article>
 
       <article className="panel stack-sm">

@@ -203,6 +203,14 @@ function makeEmptyReflection(): ReflectionDraft {
   }
 }
 
+function hasReflectionContent(draft: ReflectionDraft): boolean {
+  return Boolean(
+    draft.what_worked.trim() ||
+      draft.what_didnt.trim() ||
+      draft.what_to_change.trim(),
+  )
+}
+
 export function WeeklyReviewPage() {
   const [anchorDate, setAnchorDate] = useState(() => toDateInputValue(new Date()))
   const [payload, setPayload] = useState<WeeklyReviewPayload | null>(null)
@@ -214,6 +222,12 @@ export function WeeklyReviewPage() {
   const [reflectionDrafts, setReflectionDrafts] = useState<Record<string, ReflectionDraft>>({})
   const [skillSummaryByOutcome, setSkillSummaryByOutcome] = useState<
     Record<string, { skillsWorkedCount: number; averageConfidenceDelta: number | null }>
+  >({})
+  const [expandedShortfallOutputIds, setExpandedShortfallOutputIds] = useState<Record<string, boolean>>(
+    {},
+  )
+  const [expandedReflectionOutcomeIds, setExpandedReflectionOutcomeIds] = useState<
+    Record<string, boolean>
   >({})
 
   async function loadReview(date: string) {
@@ -508,6 +522,7 @@ export function WeeklyReviewPage() {
 
               {outcomeOutputs.map((output) => {
                 const shortfalls = buildShortfallsForOutput(output)
+                const shortfallPanelExpanded = expandedShortfallOutputIds[output.id] ?? false
 
                 return (
                   <div className="output-row" key={output.id}>
@@ -541,66 +556,92 @@ export function WeeklyReviewPage() {
 
                     {shortfalls.length > 0 ? (
                       <div className="stack-sm">
-                        <p className="muted">Shortfall tags</p>
+                        <div className="section-head">
+                          <p className="muted">Shortfall tags</p>
+                          <button
+                            aria-controls={`shortfall-panel-${output.id}`}
+                            aria-expanded={shortfallPanelExpanded}
+                            className="btn btn-secondary"
+                            onClick={() =>
+                              setExpandedShortfallOutputIds((previous) => ({
+                                ...previous,
+                                [output.id]: !shortfallPanelExpanded,
+                              }))
+                            }
+                            type="button"
+                          >
+                            {shortfallPanelExpanded
+                              ? 'Hide tags'
+                              : `Tag shortfalls (${shortfalls.length})`}
+                          </button>
+                        </div>
 
-                        {shortfalls.map((item) => {
-                          const existingTag = shortfallMap.get(item.key)
-                          const draft = shortfallDrafts[item.key] ?? {
-                            reason: existingTag?.reason ?? 'time',
-                            otherText: existingTag?.other_text ?? '',
-                          }
+                        {shortfallPanelExpanded ? (
+                          <div className="stack-sm form-disclosure" id={`shortfall-panel-${output.id}`}>
+                            {shortfalls.map((item) => {
+                              const existingTag = shortfallMap.get(item.key)
+                              const draft = shortfallDrafts[item.key] ?? {
+                                reason: existingTag?.reason ?? 'time',
+                                otherText: existingTag?.other_text ?? '',
+                              }
 
-                          return (
-                            <div className="shortfall-row" key={item.key}>
-                              <p className="hint">{item.label}</p>
+                              return (
+                                <div className="shortfall-row" key={item.key}>
+                                  <p className="hint">{item.label}</p>
 
-                              <label className="form-row" htmlFor={`shortfall-reason-${item.key}`}>
-                                Reason
-                                <select
-                                  id={`shortfall-reason-${item.key}`}
-                                  onChange={(event) =>
-                                    setShortfallDraft(item.key, {
-                                      ...draft,
-                                      reason: event.target.value as ShortfallReason,
-                                    })
-                                  }
-                                  value={draft.reason}
-                                >
-                                  {SHORTFALL_REASON_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
+                                  <label className="form-row" htmlFor={`shortfall-reason-${item.key}`}>
+                                    Reason
+                                    <select
+                                      id={`shortfall-reason-${item.key}`}
+                                      onChange={(event) =>
+                                        setShortfallDraft(item.key, {
+                                          ...draft,
+                                          reason: event.target.value as ShortfallReason,
+                                        })
+                                      }
+                                      value={draft.reason}
+                                    >
+                                      {SHORTFALL_REASON_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
 
-                              {draft.reason === 'other' ? (
-                                <label className="form-row" htmlFor={`shortfall-other-${item.key}`}>
-                                  Other details
-                                  <input
-                                    id={`shortfall-other-${item.key}`}
-                                    onChange={(event) =>
-                                      setShortfallDraft(item.key, {
-                                        ...draft,
-                                        otherText: event.target.value,
-                                      })
-                                    }
-                                    value={draft.otherText}
-                                  />
-                                </label>
-                              ) : null}
+                                  {draft.reason === 'other' ? (
+                                    <label className="form-row" htmlFor={`shortfall-other-${item.key}`}>
+                                      Other details
+                                      <input
+                                        id={`shortfall-other-${item.key}`}
+                                        onChange={(event) =>
+                                          setShortfallDraft(item.key, {
+                                            ...draft,
+                                            otherText: event.target.value,
+                                          })
+                                        }
+                                        value={draft.otherText}
+                                      />
+                                    </label>
+                                  ) : null}
 
-                              <button
-                                className="btn btn-secondary"
-                                disabled={busyKey === `shortfall-${item.key}`}
-                                onClick={() => void handleSaveShortfall(item)}
-                                type="button"
-                              >
-                                {busyKey === `shortfall-${item.key}` ? 'Saving...' : 'Save tag'}
-                              </button>
-                            </div>
-                          )
-                        })}
+                                  <button
+                                    className="btn btn-secondary"
+                                    disabled={busyKey === `shortfall-${item.key}`}
+                                    onClick={() => void handleSaveShortfall(item)}
+                                    type="button"
+                                  >
+                                    {busyKey === `shortfall-${item.key}` ? 'Saving...' : 'Save tag'}
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="hint">
+                            {shortfalls.length} shortfall{shortfalls.length === 1 ? '' : 's'} detected.
+                          </p>
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -609,61 +650,91 @@ export function WeeklyReviewPage() {
             </section>
 
             <section className="stack-sm">
-              <h3>Weekly reflection</h3>
-
-              <label className="form-row" htmlFor={`reflection-worked-${outcome.id}`}>
-                What worked well this cycle?
-                <textarea
-                  id={`reflection-worked-${outcome.id}`}
-                  onChange={(event) =>
-                    setReflectionDraft(outcome.id, {
-                      ...reflectionDraft,
-                      what_worked: event.target.value,
-                    })
+              <div className="section-head">
+                <h3>Weekly reflection</h3>
+                <button
+                  aria-controls={`reflection-panel-${outcome.id}`}
+                  aria-expanded={expandedReflectionOutcomeIds[outcome.id] ?? false}
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    setExpandedReflectionOutcomeIds((previous) => ({
+                      ...previous,
+                      [outcome.id]: !(previous[outcome.id] ?? false),
+                    }))
                   }
-                  rows={2}
-                  value={reflectionDraft.what_worked}
-                />
-              </label>
+                  type="button"
+                >
+                  {expandedReflectionOutcomeIds[outcome.id] ?? false
+                    ? 'Hide reflection'
+                    : hasReflectionContent(reflectionDraft)
+                      ? 'Edit reflection'
+                      : 'Write reflection'}
+                </button>
+              </div>
 
-              <label className="form-row" htmlFor={`reflection-didnt-${outcome.id}`}>
-                What didn't work as expected?
-                <textarea
-                  id={`reflection-didnt-${outcome.id}`}
-                  onChange={(event) =>
-                    setReflectionDraft(outcome.id, {
-                      ...reflectionDraft,
-                      what_didnt: event.target.value,
-                    })
-                  }
-                  rows={2}
-                  value={reflectionDraft.what_didnt}
-                />
-              </label>
+              {expandedReflectionOutcomeIds[outcome.id] ?? false ? (
+                <div className="stack-sm form-disclosure" id={`reflection-panel-${outcome.id}`}>
+                  <label className="form-row" htmlFor={`reflection-worked-${outcome.id}`}>
+                    What worked well this cycle?
+                    <textarea
+                      id={`reflection-worked-${outcome.id}`}
+                      onChange={(event) =>
+                        setReflectionDraft(outcome.id, {
+                          ...reflectionDraft,
+                          what_worked: event.target.value,
+                        })
+                      }
+                      rows={2}
+                      value={reflectionDraft.what_worked}
+                    />
+                  </label>
 
-              <label className="form-row" htmlFor={`reflection-change-${outcome.id}`}>
-                What will you try differently next cycle?
-                <textarea
-                  id={`reflection-change-${outcome.id}`}
-                  onChange={(event) =>
-                    setReflectionDraft(outcome.id, {
-                      ...reflectionDraft,
-                      what_to_change: event.target.value,
-                    })
-                  }
-                  rows={2}
-                  value={reflectionDraft.what_to_change}
-                />
-              </label>
+                  <label className="form-row" htmlFor={`reflection-didnt-${outcome.id}`}>
+                    What didn't work as expected?
+                    <textarea
+                      id={`reflection-didnt-${outcome.id}`}
+                      onChange={(event) =>
+                        setReflectionDraft(outcome.id, {
+                          ...reflectionDraft,
+                          what_didnt: event.target.value,
+                        })
+                      }
+                      rows={2}
+                      value={reflectionDraft.what_didnt}
+                    />
+                  </label>
 
-              <button
-                className="btn"
-                disabled={busyKey === `reflection-${outcome.id}`}
-                onClick={() => void handleSaveReflection(outcome.id)}
-                type="button"
-              >
-                {busyKey === `reflection-${outcome.id}` ? 'Saving...' : 'Save reflection'}
-              </button>
+                  <label className="form-row" htmlFor={`reflection-change-${outcome.id}`}>
+                    What will you try differently next cycle?
+                    <textarea
+                      id={`reflection-change-${outcome.id}`}
+                      onChange={(event) =>
+                        setReflectionDraft(outcome.id, {
+                          ...reflectionDraft,
+                          what_to_change: event.target.value,
+                        })
+                      }
+                      rows={2}
+                      value={reflectionDraft.what_to_change}
+                    />
+                  </label>
+
+                  <button
+                    className="btn"
+                    disabled={busyKey === `reflection-${outcome.id}`}
+                    onClick={() => void handleSaveReflection(outcome.id)}
+                    type="button"
+                  >
+                    {busyKey === `reflection-${outcome.id}` ? 'Saving...' : 'Save reflection'}
+                  </button>
+                </div>
+              ) : (
+                <p className="hint">
+                  {hasReflectionContent(reflectionDraft)
+                    ? 'Reflection drafted for this week.'
+                    : 'No reflection recorded yet.'}
+                </p>
+              )}
             </section>
           </article>
         )

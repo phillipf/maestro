@@ -1,4 +1,5 @@
 import type { SkillItemRow, SkillLogRow, SkillSummary } from './types'
+import { addLocalDays } from '../../lib/date'
 
 type WeeklySummaryInput = {
   outcomeIds: string[]
@@ -6,24 +7,6 @@ type WeeklySummaryInput = {
   weekEnd: string
   skills: SkillItemRow[]
   logs: SkillLogRow[]
-}
-
-function parseDate(value: string): Date {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, (month ?? 1) - 1, day ?? 1)
-}
-
-function formatDateLocal(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function addDays(value: string, days: number): string {
-  const date = parseDate(value)
-  date.setDate(date.getDate() + days)
-  return formatDateLocal(date)
 }
 
 export function computeWeeklySkillSummaryFromData(
@@ -47,7 +30,7 @@ export function computeWeeklySkillSummaryFromData(
 
   const skillIds = new Set(input.skills.map((skill) => skill.id))
   const weekStartTs = `${input.weekStart}T00:00:00.000Z`
-  const endExclusiveTs = `${addDays(input.weekEnd, 1)}T00:00:00.000Z`
+  const endExclusiveTs = `${addLocalDays(input.weekEnd, 1)}T00:00:00.000Z`
 
   const relevantLogs = input.logs.filter(
     (log) => skillIds.has(log.skill_item_id) && log.logged_at < endExclusiveTs,

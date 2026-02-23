@@ -1,5 +1,6 @@
 import type { DashboardOutput } from './types'
 import type { SkillItemRow, SkillLogRow } from '../skills/types'
+import { formatLocalDate } from '../../lib/date'
 
 export type LogDraft = {
   completed: number
@@ -22,11 +23,7 @@ export type SkillLogEntry = {
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export function toLocalDateInputValue(date: Date = new Date()): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-
-  return `${year}-${month}-${day}`
+  return formatLocalDate(date)
 }
 
 export function createLogDraft(output: DashboardOutput): LogDraft {

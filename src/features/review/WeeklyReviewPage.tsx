@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { addLocalDays, formatLocalDate, parseLocalDate } from '../../lib/date'
 import type { OutcomeRow, OutputRow } from '../outcomes/types'
 import { computeWeeklySkillSummaryByOutcome } from '../skills/skillsApi'
 import {
@@ -45,22 +46,15 @@ const SHORTFALL_REASON_OPTIONS: Array<{ value: ShortfallReason; label: string }>
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function toDateInputValue(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-
-  return `${year}-${month}-${day}`
+  return formatLocalDate(date)
 }
 
 function parseDate(value: string): Date {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, (month ?? 1) - 1, day ?? 1)
+  return parseLocalDate(value)
 }
 
 function addDays(value: string, days: number): string {
-  const date = parseDate(value)
-  date.setDate(date.getDate() + days)
-  return toDateInputValue(date)
+  return addLocalDays(value, days)
 }
 
 function formatCellDate(value: string): string {

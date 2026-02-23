@@ -1,24 +1,8 @@
+import { daysBetweenLocalDates } from '../../lib/date'
 import type { SkillItemRow, SkillLogRow, SkillPriority } from './types'
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
-function startOfLocalDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
-}
-
-function toDate(value: string | Date): Date {
-  return value instanceof Date ? value : new Date(value)
-}
 
 function roundToTwo(value: number): number {
   return Math.round(value * 100) / 100
-}
-
-export function daysBetweenLocalDates(from: string | Date, to: string | Date): number {
-  const fromDate = startOfLocalDay(toDate(from))
-  const toDateValue = startOfLocalDay(toDate(to))
-
-  return Math.max(0, Math.floor((toDateValue.getTime() - fromDate.getTime()) / MS_PER_DAY))
 }
 
 export function groupSkillLogsBySkill(skillLogs: SkillLogRow[]): Map<string, SkillLogRow[]> {
@@ -130,3 +114,5 @@ export function isSkillEligibleForGraduation(
 
   return latestThree.every((log) => daysBetweenLocalDates(log.logged_at, now) <= 30)
 }
+
+export { daysBetweenLocalDates } from '../../lib/date'

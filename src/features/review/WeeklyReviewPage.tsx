@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import type { OutcomeRow, OutputRow } from '../outcomes/types'
+import { computeWeeklySkillSummaryByOutcome } from '../skills/skillsApi'
 import {
   fetchWeeklyReview,
   saveShortfallTag,
@@ -217,6 +218,9 @@ export function WeeklyReviewPage() {
 
   const [shortfallDrafts, setShortfallDrafts] = useState<Record<string, ShortfallDraft>>({})
   const [reflectionDrafts, setReflectionDrafts] = useState<Record<string, ReflectionDraft>>({})
+  const [skillSummaryByOutcome, setSkillSummaryByOutcome] = useState<
+    Record<string, { skillsWorkedCount: number; averageConfidenceDelta: number | null }>
+  >({})
 
   async function loadReview(date: string) {
     setLoading(true)
@@ -251,6 +255,14 @@ export function WeeklyReviewPage() {
         return acc
       }, {})
       setReflectionDrafts(reflectionSeeds)
+
+      const summary = await computeWeeklySkillSummaryByOutcome({
+        outcomeIds: data.outcomes.map((outcome) => outcome.id),
+        weekStart: data.weekStart,
+        weekEnd: data.weekEnd,
+      })
+
+      setSkillSummaryByOutcome(summary)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load weekly review'
       setErrorMessage(message)
@@ -467,16 +479,30 @@ export function WeeklyReviewPage() {
       ) : null}
 
       {payload.outcomes.map((outcome: OutcomeRow) => {
-        const outcomeOutputs = outputsByOutcome[outcome.id] ?? []
-        const completionPercent = computeOutcomeCompletion(outcomeOutputs, weekDays, actionLogMap)
-        const reflectionDraft = reflectionDrafts[outcome.id] ?? makeEmptyReflection()
+      const outcomeOutputs = outputsByOutcome[outcome.id] ?? []
+      const completionPercent = computeOutcomeCompletion(outcomeOutputs, weekDays, actionLogMap)
+      const reflectionDraft = reflectionDrafts[outcome.id] ?? makeEmptyReflection()
+      const skillSummary = skillSummaryByOutcome[outcome.id] ?? {
+        skillsWorkedCount: 0,
+        averageConfidenceDelta: null,
+      }
+      const avgDelta = skillSummary.averageConfidenceDelta
 
-        return (
-          <article className="panel stack" key={outcome.id}>
+      return (
+        <article className="panel stack" key={outcome.id}>
             <header className="outcome-header">
               <div className="stack-xs">
                 <p className="eyebrow">{outcome.category || 'No category'}</p>
                 <h2>{outcome.title}</h2>
+                <p className="muted">
+                  {skillSummary.skillsWorkedCount === 0
+                    ? 'No skills practiced this week'
+                    : `${skillSummary.skillsWorkedCount} skills worked this week · ${
+                        avgDelta !== null
+                          ? `${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(1)} avg confidence`
+                          : 'avg confidence n/a'
+                      }`}
+                </p>
               </div>
               <p className="pill">{completionPercent}% complete</p>
             </header>

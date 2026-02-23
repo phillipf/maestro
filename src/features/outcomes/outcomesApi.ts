@@ -81,6 +81,34 @@ export async function fetchOutcomesAndOutputs() {
   }
 }
 
+export async function fetchOutcomeById(outcomeId: string): Promise<OutcomeRow> {
+  const { data, error } = await supabase
+    .from('outcomes')
+    .select('*')
+    .eq('id', outcomeId)
+    .single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return requireData(data as OutcomeRow | null, 'Outcome not found')
+}
+
+export async function fetchOutputsByOutcome(outcomeId: string): Promise<OutputRow[]> {
+  const { data, error } = await supabase
+    .from('outputs')
+    .select('*')
+    .eq('outcome_id', outcomeId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? []) as OutputRow[]
+}
+
 export async function createOutcome(input: OutcomeInput): Promise<OutcomeRow> {
   const { data, error } = await supabase
     .from('outcomes')

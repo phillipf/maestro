@@ -7,8 +7,10 @@ import { AuthPage } from '../features/auth/AuthPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { MetricsPage } from '../features/metrics/MetricsPage'
 import { OutcomesPage } from '../features/outcomes/OutcomesPage'
+import { OutcomeDetailPage } from '../features/outcomes/OutcomeDetailPage'
 import { WeeklyReviewPage } from '../features/review/WeeklyReviewPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
+import { SkillDetailPage } from '../features/skills/SkillDetailPage'
 
 export function App() {
   return (
@@ -21,6 +23,11 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route element={<DashboardPage />} index path="/" />
               <Route element={<OutcomesPage />} path="/outcomes" />
+              <Route element={<OutcomeDetailPage />} path="/outcomes/:outcomeId" />
+              <Route
+                element={<SkillDetailPage />}
+                path="/outcomes/:outcomeId/skills/:skillId"
+              />
               <Route element={<MetricsPage />} path="/metrics" />
               <Route element={<WeeklyReviewPage />} path="/weekly-review" />
               <Route element={<SettingsPage />} path="/settings" />

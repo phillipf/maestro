@@ -436,6 +436,57 @@ select {
   justify-content: space-between;
 }
 
+.chart-title {
+  color: #2b4f42;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.outcome-detail-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.suggested-link {
+  color: #1d5d49;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.suggested-link:hover {
+  color: #2e7a5f;
+}
+
+.skill-log-shell {
+  background: #f7faf7;
+  border: 1px dashed #b8c9b9;
+  border-radius: 12px;
+  padding: 0.6rem;
+}
+
+.skill-log-panel {
+  border-top: 1px solid #d6e0d6;
+  padding-top: 0.55rem;
+}
+
+.skill-row {
+  background: #f4f8f4;
+  border: 1px solid #d3ded4;
+  border-radius: 10px;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.5rem;
+}
+
+.skill-mini-form {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 @media (max-width: 880px) {
   .topbar {
     gap: 1.2rem;

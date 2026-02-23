@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import {
   createOutcome,
@@ -612,6 +613,9 @@ export function OutcomesPage() {
                     </>
                   ) : (
                     <>
+                      <Link className="btn btn-secondary" to={`/outcomes/${outcome.id}`}>
+                        Open detail
+                      </Link>
                       <button
                         className="btn btn-secondary"
                         onClick={() => beginOutcomeEdit(outcome)}

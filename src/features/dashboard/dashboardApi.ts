@@ -1,5 +1,20 @@
 import { supabase } from '../../lib/supabase'
+import { deleteSkillLogsByActionLogId } from '../skills/skillsApi'
 import type { ActionLogInput, DailyDashboardPayload } from './types'
+
+export type ActionLogLookupRow = {
+  id: string
+  output_id: string
+  action_date: string
+  completed: number
+  total: number
+  notes: string | null
+}
+
+export type SaveActionLogResult = {
+  actionLogId: string
+  completed: number
+}
 
 export async function fetchDailyDashboard(targetDate: string): Promise<DailyDashboardPayload> {
   const { data, error } = await supabase.rpc('get_daily_dashboard', {
@@ -13,7 +28,28 @@ export async function fetchDailyDashboard(targetDate: string): Promise<DailyDash
   return data as DailyDashboardPayload
 }
 
-export async function saveActionLog(input: ActionLogInput): Promise<void> {
+export async function fetchActionLogsForDate(
+  outputIds: string[],
+  actionDate: string,
+): Promise<ActionLogLookupRow[]> {
+  if (!outputIds.length) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('action_logs')
+    .select('id, output_id, action_date, completed, total, notes')
+    .in('output_id', outputIds)
+    .eq('action_date', actionDate)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? []) as ActionLogLookupRow[]
+}
+
+export async function saveActionLog(input: ActionLogInput): Promise<SaveActionLogResult> {
   const completed = Math.max(0, Number(input.completed) || 0)
   const total = Math.max(0, Number(input.total) || 0)
 
@@ -42,18 +78,38 @@ export async function saveActionLog(input: ActionLogInput): Promise<void> {
       throw new Error(updateError.message)
     }
 
-    return
+    if (completed === 0) {
+      await deleteSkillLogsByActionLogId(existing.id)
+    }
+
+    return {
+      actionLogId: existing.id,
+      completed,
+    }
   }
 
-  const { error: insertError } = await supabase.from('action_logs').insert({
-    output_id: input.outputId,
-    action_date: input.actionDate,
-    completed,
-    total,
-    notes: input.notes.trim() ? input.notes.trim() : null,
-  })
+  const { data: inserted, error: insertError } = await supabase
+    .from('action_logs')
+    .insert({
+      output_id: input.outputId,
+      action_date: input.actionDate,
+      completed,
+      total,
+      notes: input.notes.trim() ? input.notes.trim() : null,
+    })
+    .select('id')
+    .single()
 
   if (insertError) {
     throw new Error(insertError.message)
+  }
+
+  if (!inserted?.id) {
+    throw new Error('Action log id was not returned')
+  }
+
+  return {
+    actionLogId: inserted.id,
+    completed,
   }
 }

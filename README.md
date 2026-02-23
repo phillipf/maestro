@@ -19,7 +19,8 @@ Personal-use Outcome & Output Framework app.
 - M5 Weekly review + reflections: completed
 - M6 Metrics + charts: completed
 - M7 Settings + reminders + data purge: completed
-- M8 Tests/performance hardening: in progress
+- M8 Skills mastery layer: in progress
+- M9 Tests/performance hardening: in progress
 
 ## Local Setup
 
@@ -43,11 +44,18 @@ cp .env.example .env.local
 npm run dev
 ```
 
+5. Run tests:
+
+```bash
+npm run test:run
+```
+
 ## Supabase Migration
 
 Initial schema lives in:
 
 - `supabase/migrations/20260223130000_init_schema.sql`
+- `supabase/migrations/20260223143000_skill_mastery_layer.sql`
 
 Apply with Supabase CLI (example):
 

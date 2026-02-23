@@ -7,6 +7,18 @@ import {
   saveActionLog,
   type ActionLogLookupRow,
 } from './dashboardApi'
+import {
+  buildSelectedSkillEntries,
+  buildSkillDraftsFromExistingLogs,
+  createEmptySkillLogDraft,
+  createLogDraft,
+  frequencyDescription,
+  runGraduationPromptFlow,
+  scoreLabel,
+  toLocalDateInputValue,
+  type LogDraft,
+  type SkillLogDraft,
+} from './dashboardWorkflows'
 import type { DashboardOutput, DailyDashboardPayload } from './types'
 import {
   checkGraduationEligibility,
@@ -19,64 +31,10 @@ import {
 import { computePriorityQueue } from '../skills/priority'
 import type { SkillItemRow, SkillLogRow, SkillPriority } from '../skills/types'
 
-type LogDraft = {
-  completed: number
-  total: number
-  notes: string
-}
-
-type SkillLogDraft = {
-  selected: boolean
-  confidence: number
-  targetResult: string
-}
-
 type ScheduledOutput = {
   outcomeId: string
   outcomeTitle: string
   output: DashboardOutput
-}
-
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function toLocalDateInputValue(date: Date = new Date()): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-
-  return `${year}-${month}-${day}`
-}
-
-function createLogDraft(output: DashboardOutput): LogDraft {
-  return {
-    completed: output.today_log?.completed ?? 0,
-    total:
-      output.today_log?.total ??
-      (output.frequency_type === 'flexible_weekly' ? output.frequency_value : 1),
-    notes: output.today_log?.notes ?? '',
-  }
-}
-
-function frequencyDescription(output: DashboardOutput): string {
-  if (output.frequency_type === 'daily') {
-    return 'Daily'
-  }
-
-  if (output.frequency_type === 'flexible_weekly') {
-    return `${output.frequency_value}x/week (flexible)`
-  }
-
-  const days = (output.schedule_weekdays ?? []).map((day) => WEEKDAY_LABELS[day]).join(', ')
-
-  return `Fixed weekly (${days || 'no days'})`
-}
-
-function scoreLabel(score: number | undefined): string {
-  if (score === undefined) {
-    return 'n/a'
-  }
-
-  return Math.round(score).toString()
 }
 
 export function DashboardPage() {
@@ -267,11 +225,7 @@ export function DashboardPage() {
   ) {
     setSkillLogDraftsByOutput((previous) => {
       const outputDraft = previous[outputId] ?? {}
-      const skillDraft = outputDraft[skillId] ?? {
-        selected: false,
-        confidence: 3,
-        targetResult: '',
-      }
+      const skillDraft = outputDraft[skillId] ?? createEmptySkillLogDraft()
 
       return {
         ...previous,
@@ -359,25 +313,7 @@ export function DashboardPage() {
     try {
       const existingLogs = await fetchSkillLogsByActionIds([actionLog.id])
       const outcomeSkills = skillsByOutcome[outputRow.outcomeId] ?? []
-
-      const existingBySkill = existingLogs.reduce<Record<string, SkillLogRow>>((acc, log) => {
-        acc[log.skill_item_id] = log
-        return acc
-      }, {})
-
-      const drafts = outcomeSkills.reduce<Record<string, SkillLogDraft>>((acc, skill) => {
-        const existing = existingBySkill[skill.id]
-
-        acc[skill.id] = {
-          selected: Boolean(existing),
-          confidence: existing?.confidence ?? 3,
-          targetResult: existing?.target_result === null || existing?.target_result === undefined
-            ? ''
-            : String(existing.target_result),
-        }
-
-        return acc
-      }, {})
+      const drafts = buildSkillDraftsFromExistingLogs(outcomeSkills, existingLogs)
 
       setSkillLogDraftsByOutput((previous) => ({
         ...previous,
@@ -403,22 +339,10 @@ export function DashboardPage() {
     }
 
     const drafts = skillLogDraftsByOutput[outputId] ?? {}
+    const { entries: selectedEntries, errorMessage: validationError } = buildSelectedSkillEntries(drafts)
 
-    const selectedEntries = Object.entries(drafts)
-      .filter(([, draft]) => draft.selected)
-      .map(([skillId, draft]) => ({
-        skillItemId: skillId,
-        confidence: draft.confidence,
-        targetResult: draft.targetResult.trim() ? Number(draft.targetResult) : null,
-      }))
-
-    if (selectedEntries.some((entry) => Number.isNaN(entry.targetResult))) {
-      setErrorMessage('Target result must be numeric for selected skills.')
-      return
-    }
-
-    if (selectedEntries.some((entry) => entry.confidence < 1 || entry.confidence > 5)) {
-      setErrorMessage('Confidence must be between 1 and 5.')
+    if (validationError) {
+      setErrorMessage(validationError)
       return
     }
 
@@ -431,24 +355,14 @@ export function DashboardPage() {
         entries: selectedEntries,
       })
 
-      for (const skillId of result.createdSkillIds) {
-        const eligible = await checkGraduationEligibility(skillId)
-
-        if (!eligible) {
-          continue
-        }
-
-        const skillName = skills.find((item) => item.id === skillId)?.name ?? 'This skill'
-        const moveToReview = window.confirm(
-          `${skillName} qualifies for review (3 recent confidence logs of 4+). Move it to Review now?`,
-        )
-
-        if (moveToReview) {
-          await setSkillStage(skillId, 'review')
-        } else {
-          await suppressSkillGraduation(skillId)
-        }
-      }
+      await runGraduationPromptFlow({
+        createdSkillIds: result.createdSkillIds,
+        skills,
+        isSkillEligible: checkGraduationEligibility,
+        moveToReview: (skillId) => setSkillStage(skillId, 'review').then(() => undefined),
+        suppressGraduation: suppressSkillGraduation,
+        confirmMoveToReview: (message) => window.confirm(message),
+      })
 
       setExpandedSkillOutputId(null)
       await loadDashboard(selectedDate)
@@ -694,11 +608,7 @@ export function DashboardPage() {
                             <p className="muted">Suggested today</p>
                             {suggested.map((item) => {
                               const skill = item.skill
-                              const draftRow = drafts[skill.id] ?? {
-                                selected: false,
-                                confidence: 3,
-                                targetResult: '',
-                              }
+                              const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
 
                               return (
                                 <div className="skill-row" key={`${output.id}-${skill.id}`}>
@@ -771,11 +681,7 @@ export function DashboardPage() {
                           <div className="stack-xs">
                             <p className="muted">All skills</p>
                             {additionalSkills.map((skill) => {
-                              const draftRow = drafts[skill.id] ?? {
-                                selected: false,
-                                confidence: 3,
-                                targetResult: '',
-                              }
+                              const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
 
                               return (
                                 <div className="skill-row" key={`${output.id}-all-${skill.id}`}>

@@ -75,6 +75,10 @@ export function ScheduledOutputCard({
 }: ScheduledOutputCardProps) {
   const { output, outcomeId, outcomeTitle } = row
   const showSkillPrompt = Boolean(actionLog && actionLog.completed > 0 && hasSkills)
+  const adjustDraftNumber = (key: 'completed' | 'total', delta: number) => {
+    const nextValue = Math.max(0, draft[key] + delta)
+    onSetLogDraftValue(output.id, key, nextValue)
+  }
 
   return (
     <article className="panel output-row" key={output.id}>
@@ -113,26 +117,70 @@ export function ScheduledOutputCard({
       <div className="action-form-grid">
         <label className="form-row" htmlFor={`completed-${output.id}`}>
           Completed
-          <input
-            id={`completed-${output.id}`}
-            min={0}
-            onChange={(event) =>
-              onSetLogDraftValue(output.id, 'completed', Number(event.target.value))
-            }
-            type="number"
-            value={draft.completed}
-          />
+          <div className="number-input-shell">
+            <input
+              id={`completed-${output.id}`}
+              min={0}
+              onChange={(event) =>
+                onSetLogDraftValue(output.id, 'completed', Number(event.target.value))
+              }
+              step={1}
+              type="number"
+              value={draft.completed}
+            />
+            <div aria-label="Adjust completed value" className="number-stepper" role="group">
+              <button
+                aria-label={`Increase completed for ${output.description}`}
+                className="number-step-btn"
+                onClick={() => adjustDraftNumber('completed', 1)}
+                type="button"
+              >
+                +
+              </button>
+              <button
+                aria-label={`Decrease completed for ${output.description}`}
+                className="number-step-btn"
+                disabled={draft.completed <= 0}
+                onClick={() => adjustDraftNumber('completed', -1)}
+                type="button"
+              >
+                -
+              </button>
+            </div>
+          </div>
         </label>
 
         <label className="form-row" htmlFor={`total-${output.id}`}>
           Total
-          <input
-            id={`total-${output.id}`}
-            min={0}
-            onChange={(event) => onSetLogDraftValue(output.id, 'total', Number(event.target.value))}
-            type="number"
-            value={draft.total}
-          />
+          <div className="number-input-shell">
+            <input
+              id={`total-${output.id}`}
+              min={0}
+              onChange={(event) => onSetLogDraftValue(output.id, 'total', Number(event.target.value))}
+              step={1}
+              type="number"
+              value={draft.total}
+            />
+            <div aria-label="Adjust total value" className="number-stepper" role="group">
+              <button
+                aria-label={`Increase total for ${output.description}`}
+                className="number-step-btn"
+                onClick={() => adjustDraftNumber('total', 1)}
+                type="button"
+              >
+                +
+              </button>
+              <button
+                aria-label={`Decrease total for ${output.description}`}
+                className="number-step-btn"
+                disabled={draft.total <= 0}
+                onClick={() => adjustDraftNumber('total', -1)}
+                type="button"
+              >
+                -
+              </button>
+            </div>
+          </div>
         </label>
       </div>
 

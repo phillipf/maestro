@@ -307,6 +307,40 @@ select {
   opacity: 1;
 }
 
+.number-input-shell {
+  align-items: stretch;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.number-stepper {
+  display: grid;
+  gap: 0.2rem;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.number-step-btn {
+  align-items: center;
+  background: #e3ebe4;
+  border: 1px solid #bacabc;
+  border-radius: 8px;
+  color: #133226;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.95rem;
+  justify-content: center;
+  line-height: 1;
+  min-height: 24px;
+  min-width: 28px;
+  padding: 0.1rem 0.45rem;
+}
+
+.number-step-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .weekday-row {
   display: flex;
   flex-wrap: wrap;
@@ -531,5 +565,10 @@ select {
 @media (max-width: 560px) {
   .action-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .number-step-btn {
+    min-height: 28px;
+    min-width: 32px;
   }
 }

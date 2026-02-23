@@ -200,7 +200,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 38. Do we need account/data deletion workflows?
 
-**Yes — build a "Delete all my data" button in settings.** With Supabase storing data server-side, this is no longer a trivial `indexedDB.deleteDatabase()`. Create a Supabase RPC function (or edge function) that cascading-deletes all rows for the authenticated user across all tables. Prompt "Export your data first?" before the confirmation dialog. Also add a "Delete account" option that calls `supabase.auth.admin.deleteUser()` after the data purge. This is good hygiene even for a personal app — you might want to cleanly shut it down someday, and the Supabase free tier has a 500MB database cap.
+**"Delete all app data" for v1 — defer account deletion to v1.1.** Build a Supabase RPC function that cascade-deletes all rows for the authenticated user across all app tables. Prompt "Export your data first?" before the confirmation dialog. The auth record persists (the app is simply empty), and full account deletion can be done manually via the Supabase dashboard if ever needed. A proper edge function for `supabase.auth.admin.deleteUser()` is v1.1 — it requires a service role key and privileged infrastructure that isn't worth building for something you'll rarely use.
 
 ### 39. Performance target — what baseline?
 
@@ -208,7 +208,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 40. Notification model?
 
-**Two options, pick based on effort tolerance.** **(Option A — v1 simple):** Browser/PWA notifications only, same as before. One daily reminder, one weekly review nudge, both at user-configured times. **(Option B — v1.1 upgrade):** Use a **Supabase cron trigger + edge function** to send email reminders instead. This is more reliable than browser notifications (which are flaky on mobile Safari and require explicit permission). Supabase's free tier includes 100K edge function invocations/month — one daily email is 30/month. Recommended path: ship v1 with browser notifications, upgrade to email reminders in v1.1 once the core app is stable. No quiet hours logic needed either way — the user sets the reminder time, so they're implicitly choosing when to be notified.
+**Two options, pick based on effort tolerance.** **(Option A — v1 simple):** Browser/PWA notifications only. One daily reminder, one weekly review nudge, both at user-configured times. These are **best-effort** — they only fire when the service worker is alive or the browser is open, and are unreliable on iOS when the app is fully closed. The settings UI should be transparent: "Reminders work best when the app is open or added to your home screen." **(Option B — v1.1 upgrade):** Use a **Supabase cron trigger + edge function** to send email reminders instead. This is the reliable path — no browser dependency, guaranteed delivery. Supabase's free tier includes 100K edge function invocations/month — one daily email is 30/month. Recommended: ship v1 with best-effort browser notifications, upgrade to email in v1.1. No quiet hours logic needed either way — the user sets the reminder time, implicitly choosing when to be notified.
 
 ---
 
@@ -223,18 +223,18 @@ A single-page web app deployed to **Cloudflare Pages**, backed by **Supabase** (
 - **Data:** All tables include `user_id`, protected by RLS (`auth.uid() = user_id`)
 
 **v1 ships with:**
-- Supabase Auth (magic link) + RLS on all tables
+- Supabase Auth (magic link, sign-ups disabled) + RLS on all tables
 - Outcome CRUD (active/archived/retired)
 - Output CRUD with frequency scheduling (daily, flexible X/week, fixed days/week)
 - Starter mode (rule-based, first output only)
 - Daily dashboard with completion logging, partial completion, and notes
 - Basic numeric metrics with standalone line charts
-- Weekly review grid (green/yellow/red/grey)
-- Shortfall tagging (fixed taxonomy, per occurrence, includes partials)
-- Weekly reflection prompts (3 defaults)
-- Browser/PWA notifications
+- Weekly review grid (mixed layout: day-cells for fixed, summary cell for flexible)
+- Shortfall tagging (fixed taxonomy, per-occurrence for fixed/daily, per-week for flexible)
+- Weekly reflection prompts (3 defaults, one JSONB row per outcome per week)
+- Browser/PWA notifications (best-effort)
 - Start-of-week setting
-- Data + account deletion workflow
+- Data deletion via RPC (app data only, not auth account)
 
 **v1.1 adds:**
 - JSON export/import
@@ -245,6 +245,7 @@ A single-page web app deployed to **Cloudflare Pages**, backed by **Supabase** (
 - Monthly reflection cadence
 - Chart overlay (metrics + output completion)
 - Email reminders via Supabase edge functions + cron
+- Account deletion edge function
 
 **Deferred indefinitely:**
 - Native mobile apps

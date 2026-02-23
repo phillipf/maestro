@@ -122,3 +122,68 @@ Join-based policies (e.g., "action_log is owned by the user who owns the output 
 Svelte is a great framework, but for a solo personal project where speed-to-launch matters and the ecosystem fit with Supabase is a real factor, React is the pragmatic choice. Use **Vite** as the bundler (not Create React App, which is dead). TypeScript from day one — the Supabase client is fully typed and it'll save you debugging time.
 
 **Locked stack:** React + TypeScript + Vite + Supabase JS client, deployed to Cloudflare Pages.
+
+---
+
+## Round 3 — Implementation Details
+
+### 15. For flexible X/week, how does shortfall tagging work?
+
+**One tag per output per week, covering the overall deficit.** Flexible outputs don't have missed *occurrences* — there's no specific day you failed to show up. During the weekly review, if you did 1 of 3, you tag one reason for the deficit ("Why didn't you hit 3 this week?"). Creating phantom misses to tag individually would be artificial.
+
+This means shortfall tagging has **two modes:**
+- **Fixed-day / daily outputs:** tag per missed occurrence (e.g., missed Monday → tag Monday)
+- **Flexible X/week outputs:** tag once per output per week if target not met
+
+The weekly review UI handles both naturally since it already shows per-output summaries.
+
+### 16. Can `completed` exceed 1 per day for flexible outputs?
+
+**Yes.** If the output is "write 3 blog posts this week" and you write 2 on Saturday, that day's row stores `{completed: 2, total: 3}` — counting 2 toward the weekly target. Cap `completed` at the remaining weekly balance: if you've done 1 earlier in the week, Saturday shows `{completed: 2, total: 2}` (2 remaining).
+
+The weekly aggregation sums `completed` across all daily rows for flexible outputs. For daily and fixed-day outputs, `completed/total` represents partial units within a single occurrence (e.g., 2 of 3 sets), and `completed` will not exceed `total`. The `frequency_type` column tells you how to interpret the values — worth a code comment but no schema difference.
+
+### 17. Weekly review grid: mixed layout for fixed vs flexible?
+
+**Yes — mixed layout, kept simple.**
+
+- **Fixed-day / daily outputs:** 7 day-cells (Mon–Sun), colored per occurrence (green/yellow/red/grey).
+- **Flexible X/week outputs:** Single summary cell spanning the row, colored by weekly target (green ≥ target, yellow > 0 but under, red = 0).
+
+Don't fake day-cells for flexible outputs — it visually implies commitments that don't exist. The mixed layout is intuitive: rows with dots across the week are routine habits, rows with a single wide cell are "get it done whenever" outputs.
+
+### 18. Browser/PWA notifications: what guarantee level?
+
+**Best-effort, and be transparent about it.** Browser/PWA notifications only fire when the service worker is alive or the browser is open. On iOS especially, notifications are unreliable when the app is fully closed. The settings UI should say something like "Reminders work best when the app is open or added to your home screen." Don't promise delivery.
+
+This is a known v1 limitation and the explicit reason email reminders via Supabase edge functions + cron are planned for v1.1 — that's the reliable path.
+
+### 19. Should v1 include edge function for account deletion?
+
+**No. "Delete all app data" is sufficient for v1.** The `supabase.auth.admin.deleteUser()` call requires a service role key, meaning an edge function with privileged access — meaningful infrastructure for something you'll likely never use. For v1, build a Supabase RPC that cascade-deletes all rows for `auth.uid()` across app tables. The auth record persists, but the app is empty. Full account deletion (including auth record) can be done manually from the Supabase dashboard, or via an edge function in v1.1 if it bothers you.
+
+### 20. Reflection storage: one row per period with JSONB responses.
+
+**One row per reflection period per outcome.** Store prompt responses in a `responses JSONB` column:
+
+```json
+{
+  "what_worked": "Morning sessions were more focused...",
+  "what_didnt": "Skipped Wednesday entirely...",
+  "what_to_change": "Move piano practice before dinner..."
+}
+```
+
+Schema:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | Primary key |
+| user_id | UUID | RLS policy |
+| outcome_id | UUID | FK to outcomes |
+| period_type | TEXT | `'weekly'` (v1), `'monthly'` (v1.1) |
+| period_start | DATE | Start of the week/month |
+| responses | JSONB | Prompt answers keyed by prompt slug |
+| created_at | TIMESTAMPTZ | When reflection was submitted |
+
+One row per outcome per week keeps queries simple, makes the learning journal view trivial (list rows), and the JSONB column is flexible enough to add/change prompts without a schema migration. The trade-off is you can't query individual prompt answers with simple SQL — but you'll never need to, since reflections are always rendered as a full unit.

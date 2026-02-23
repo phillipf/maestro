@@ -180,6 +180,8 @@ export function OutcomesPage() {
   const [newOutcome, setNewOutcome] = useState<OutcomeDraft>(EMPTY_OUTCOME_DRAFT)
   const [editingOutcomeId, setEditingOutcomeId] = useState<string | null>(null)
   const [editingOutcomeDraft, setEditingOutcomeDraft] = useState<OutcomeDraft | null>(null)
+  const [showCreateOutcomeForm, setShowCreateOutcomeForm] = useState(false)
+  const [expandedAddOutputOutcomeId, setExpandedAddOutputOutcomeId] = useState<string | null>(null)
 
   const [outputDrafts, setOutputDrafts] = useState<Record<string, OutputDraft>>({})
   const [editingOutputId, setEditingOutputId] = useState<string | null>(null)
@@ -276,6 +278,7 @@ export function OutcomesPage() {
 
       setOutcomes((previous) => [created, ...previous])
       setNewOutcome(EMPTY_OUTCOME_DRAFT)
+      setShowCreateOutcomeForm(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create outcome'
       setErrorMessage(message)
@@ -362,6 +365,7 @@ export function OutcomesPage() {
 
       setOutputs((previous) => [...previous, created])
       setDraftForOutcome(outcomeId, makeDefaultOutputDraft())
+      setExpandedAddOutputOutcomeId((current) => (current === outcomeId ? null : current))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create output'
       setErrorMessage(message)
@@ -483,36 +487,58 @@ export function OutcomesPage() {
       {errorMessage ? <p className="status-bad">{errorMessage}</p> : null}
 
       <article className="panel stack-sm">
-        <h2>Create outcome</h2>
-
-        <form className="field-grid" onSubmit={handleCreateOutcome}>
-          <label className="form-row" htmlFor="outcome-title">
-            Outcome title
-            <input
-              id="outcome-title"
-              onChange={(event) =>
-                setNewOutcome((previous) => ({ ...previous, title: event.target.value }))
-              }
-              required
-              value={newOutcome.title}
-            />
-          </label>
-
-          <label className="form-row" htmlFor="outcome-category">
-            Category (optional)
-            <input
-              id="outcome-category"
-              onChange={(event) =>
-                setNewOutcome((previous) => ({ ...previous, category: event.target.value }))
-              }
-              value={newOutcome.category}
-            />
-          </label>
-
-          <button className="btn" disabled={busyKey === 'create-outcome'} type="submit">
-            {busyKey === 'create-outcome' ? 'Creating...' : 'Create outcome'}
+        <div className="section-head">
+          <h2>Create outcome</h2>
+          <button
+            aria-controls="create-outcome-form"
+            aria-expanded={showCreateOutcomeForm}
+            className="btn btn-secondary"
+            onClick={() => setShowCreateOutcomeForm((current) => !current)}
+            type="button"
+          >
+            {showCreateOutcomeForm ? 'Close' : 'Add outcome'}
           </button>
-        </form>
+        </div>
+
+        {showCreateOutcomeForm ? (
+          <form className="field-grid form-disclosure" id="create-outcome-form" onSubmit={handleCreateOutcome}>
+            <label className="form-row" htmlFor="outcome-title">
+              Outcome title
+              <input
+                id="outcome-title"
+                onChange={(event) =>
+                  setNewOutcome((previous) => ({ ...previous, title: event.target.value }))
+                }
+                required
+                value={newOutcome.title}
+              />
+            </label>
+
+            <label className="form-row" htmlFor="outcome-category">
+              Category (optional)
+              <input
+                id="outcome-category"
+                onChange={(event) =>
+                  setNewOutcome((previous) => ({ ...previous, category: event.target.value }))
+                }
+                value={newOutcome.category}
+              />
+            </label>
+
+            <div className="actions-row">
+              <button className="btn" disabled={busyKey === 'create-outcome'} type="submit">
+                {busyKey === 'create-outcome' ? 'Creating...' : 'Create outcome'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCreateOutcomeForm(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : null}
       </article>
 
       <article className="panel stack-sm">
@@ -796,115 +822,141 @@ export function OutcomesPage() {
               </section>
 
               <section className="stack-sm">
-                <h3>Add output</h3>
-
-                <div className="stack-sm">
-                  <label className="form-row" htmlFor={`new-output-desc-${outcome.id}`}>
-                    Description
-                    <input
-                      id={`new-output-desc-${outcome.id}`}
-                      onChange={(event) =>
-                        setDraftField(outcome.id, 'description', event.target.value)
-                      }
-                      value={createDraft.description}
-                    />
-                  </label>
-
-                  <label
-                    className="form-row form-row-medium"
-                    htmlFor={`new-output-frequency-${outcome.id}`}
+                <div className="section-head">
+                  <h3>Add output</h3>
+                  <button
+                    aria-controls={`add-output-form-${outcome.id}`}
+                    aria-expanded={expandedAddOutputOutcomeId === outcome.id}
+                    className="btn btn-secondary"
+                    onClick={() =>
+                      setExpandedAddOutputOutcomeId((current) =>
+                        current === outcome.id ? null : outcome.id,
+                      )
+                    }
+                    type="button"
                   >
-                    Frequency
-                    <select
-                      id={`new-output-frequency-${outcome.id}`}
-                      onChange={(event) =>
-                        setDraftField(
-                          outcome.id,
-                          'frequency_type',
-                          event.target.value as FrequencyType,
-                        )
-                      }
-                      value={createDraft.frequency_type}
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="flexible_weekly">Flexible X/week</option>
-                      <option value="fixed_weekly">Fixed days/week</option>
-                    </select>
-                  </label>
+                    {expandedAddOutputOutcomeId === outcome.id ? 'Close' : 'Add output'}
+                  </button>
+                </div>
 
-                  {createDraft.frequency_type === 'flexible_weekly' ? (
-                    <label
-                      className="form-row form-row-compact"
-                      htmlFor={`new-output-value-${outcome.id}`}
-                    >
-                      Target per week
+                {expandedAddOutputOutcomeId === outcome.id ? (
+                  <div className="stack-sm form-disclosure" id={`add-output-form-${outcome.id}`}>
+                    <label className="form-row" htmlFor={`new-output-desc-${outcome.id}`}>
+                      Description
                       <input
-                        id={`new-output-value-${outcome.id}`}
-                        max={7}
-                        min={1}
+                        id={`new-output-desc-${outcome.id}`}
+                        onChange={(event) =>
+                          setDraftField(outcome.id, 'description', event.target.value)
+                        }
+                        value={createDraft.description}
+                      />
+                    </label>
+
+                    <label
+                      className="form-row form-row-medium"
+                      htmlFor={`new-output-frequency-${outcome.id}`}
+                    >
+                      Frequency
+                      <select
+                        id={`new-output-frequency-${outcome.id}`}
                         onChange={(event) =>
                           setDraftField(
                             outcome.id,
-                            'frequency_value',
-                            Number(event.target.value),
+                            'frequency_type',
+                            event.target.value as FrequencyType,
                           )
                         }
-                        type="number"
-                        value={createDraft.frequency_value}
-                      />
+                        value={createDraft.frequency_type}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="flexible_weekly">Flexible X/week</option>
+                        <option value="fixed_weekly">Fixed days/week</option>
+                      </select>
                     </label>
-                  ) : null}
 
-                  {createDraft.frequency_type === 'fixed_weekly' ? (
-                    <div className="stack-xs">
-                      <p className="muted">Select weekdays</p>
-                      <div className="weekday-row">
-                        {WEEKDAYS.map((day) => {
-                          const selected = createDraft.schedule_weekdays.includes(day.value)
+                    {createDraft.frequency_type === 'flexible_weekly' ? (
+                      <label
+                        className="form-row form-row-compact"
+                        htmlFor={`new-output-value-${outcome.id}`}
+                      >
+                        Target per week
+                        <input
+                          id={`new-output-value-${outcome.id}`}
+                          max={7}
+                          min={1}
+                          onChange={(event) =>
+                            setDraftField(
+                              outcome.id,
+                              'frequency_value',
+                              Number(event.target.value),
+                            )
+                          }
+                          type="number"
+                          value={createDraft.frequency_value}
+                        />
+                      </label>
+                    ) : null}
 
-                          return (
-                            <button
-                              className={`chip${selected ? ' chip-active' : ''}`}
-                              key={`${outcome.id}-${day.value}`}
-                              onClick={() => toggleWeekday(outcome.id, day.value)}
-                              type="button"
-                            >
-                              {day.label}
-                            </button>
-                          )
-                        })}
+                    {createDraft.frequency_type === 'fixed_weekly' ? (
+                      <div className="stack-xs">
+                        <p className="muted">Select weekdays</p>
+                        <div className="weekday-row">
+                          {WEEKDAYS.map((day) => {
+                            const selected = createDraft.schedule_weekdays.includes(day.value)
+
+                            return (
+                              <button
+                                className={`chip${selected ? ' chip-active' : ''}`}
+                                key={`${outcome.id}-${day.value}`}
+                                onClick={() => toggleWeekday(outcome.id, day.value)}
+                                type="button"
+                              >
+                                {day.label}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  {starterSuggestion ? (
-                    <div className="starter-card">
-                      <p className="muted">{starterSuggestion.reason}</p>
-                      <p className="hint">{starterSuggestionText(starterSuggestion.draft)}</p>
+                    {starterSuggestion ? (
+                      <div className="starter-card">
+                        <p className="muted">{starterSuggestion.reason}</p>
+                        <p className="hint">{starterSuggestionText(starterSuggestion.draft)}</p>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() =>
+                            setDraftForOutcome(outcome.id, {
+                              ...starterSuggestion.draft,
+                              starter_applied: true,
+                            })
+                          }
+                          type="button"
+                        >
+                          Apply starter suggestion
+                        </button>
+                      </div>
+                    ) : null}
+
+                    <div className="actions-row">
                       <button
-                        className="btn btn-secondary"
-                        onClick={() =>
-                          setDraftForOutcome(outcome.id, {
-                            ...starterSuggestion.draft,
-                            starter_applied: true,
-                          })
-                        }
+                        className="btn"
+                        disabled={busyKey === `create-output-${outcome.id}`}
+                        onClick={() => void handleCreateOutput(outcome.id)}
                         type="button"
                       >
-                        Apply starter suggestion
+                        {busyKey === `create-output-${outcome.id}` ? 'Creating...' : 'Create output'}
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setExpandedAddOutputOutcomeId(null)}
+                        type="button"
+                      >
+                        Cancel
                       </button>
                     </div>
-                  ) : null}
-
-                  <button
-                    className="btn"
-                    disabled={busyKey === `create-output-${outcome.id}`}
-                    onClick={() => void handleCreateOutput(outcome.id)}
-                    type="button"
-                  >
-                    {busyKey === `create-output-${outcome.id}` ? 'Creating...' : 'Create output'}
-                  </button>
-                </div>
+                  </div>
+                ) : null}
               </section>
             </article>
           )

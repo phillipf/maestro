@@ -271,6 +271,21 @@ select {
   gap: 0.45rem;
 }
 
+.section-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.form-disclosure {
+  background: #f5faf5;
+  border: 1px solid #d2ded1;
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
 .pill {
   background: #d9e8dd;
   border-radius: 999px;

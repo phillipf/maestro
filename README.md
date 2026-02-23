@@ -67,7 +67,6 @@ supabase db push
 
 - SPA fallback is configured via `public/_redirects`.
 - Build output directory is `dist`.
-- `wrangler.toml` includes Pages output metadata for Wrangler-based deploys.
 
 ## Notes
 

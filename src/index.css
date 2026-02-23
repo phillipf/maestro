@@ -288,7 +288,23 @@ select {
 .action-form-grid {
   display: grid;
   gap: 0.6rem;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.action-form-grid .form-row {
+  min-width: 0;
+}
+
+.action-form-grid input[type='number'] {
+  appearance: auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.action-form-grid input[type='number']::-webkit-outer-spin-button,
+.action-form-grid input[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  opacity: 1;
 }
 
 .weekday-row {
@@ -509,5 +525,11 @@ select {
   .entry-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .action-form-grid {
+    grid-template-columns: 1fr;
   }
 }

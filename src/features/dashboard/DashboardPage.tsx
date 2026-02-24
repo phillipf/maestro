@@ -18,6 +18,7 @@ import {
 } from './dashboardWorkflows'
 import { ScheduledOutputCard, type ScheduledOutput } from './ScheduledOutputCard'
 import type { DashboardOutput, DailyDashboardPayload } from './types'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 import {
   checkGraduationEligibility,
   fetchSkillLogsByActionIds,
@@ -400,6 +401,14 @@ export function DashboardPage() {
               <Link
                 className="suggested-link"
                 key={row.skill.id}
+                onClick={() =>
+                  trackUIEvent('dashboard.entity.open', {
+                    entity: 'skill',
+                    outcomeId: row.skill.outcome_id,
+                    skillId: row.skill.id,
+                    source: 'top_suggested',
+                  })
+                }
                 to={`/outcomes/${row.skill.outcome_id}/skills/${row.skill.id}`}
               >
                 {row.skill.name} <span className="hint">(priority {Math.round(row.finalScore)})</span>
@@ -423,6 +432,14 @@ export function DashboardPage() {
                     <Link
                       className="suggested-link"
                       key={`ranked-${row.skill.id}`}
+                      onClick={() =>
+                        trackUIEvent('dashboard.entity.open', {
+                          entity: 'skill',
+                          outcomeId: row.skill.outcome_id,
+                          skillId: row.skill.id,
+                          source: 'full_suggested',
+                        })
+                      }
                       to={`/outcomes/${row.skill.outcome_id}/skills/${row.skill.id}`}
                     >
                       #{index + 1} {row.skill.name}{' '}

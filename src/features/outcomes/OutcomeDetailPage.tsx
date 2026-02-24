@@ -16,6 +16,7 @@ import {
 import { computePriorityQueue, groupSkillLogsBySkill } from '../skills/priority'
 import type { SkillItemRow, SkillLogRow, SkillStage } from '../skills/types'
 import { EllipsisIcon, PencilIcon } from '../../app/ui/ActionIcons'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -196,6 +197,11 @@ export function OutcomeDetailPage() {
       return
     }
 
+    trackUIEvent('outcomeDetail.edit.open', {
+      entity: 'outcome',
+      outcomeId: outcome.id,
+    })
+
     const title = window.prompt('Outcome title', outcome.title)
 
     if (title === null) {
@@ -262,6 +268,10 @@ export function OutcomeDetailPage() {
         initialConfidence: 1,
       })
       setShowAddSkillForm(false)
+      trackUIEvent('outcomeDetail.create.success', {
+        entity: 'skill',
+        outcomeId,
+      })
 
       await loadData()
     } catch (error) {
@@ -273,6 +283,11 @@ export function OutcomeDetailPage() {
   }
 
   async function handleEditSkill(skill: SkillItemRow) {
+    trackUIEvent('outcomeDetail.edit.open', {
+      entity: 'skill',
+      outcomeId: skill.outcome_id,
+      skillId: skill.id,
+    })
     setOpenSkillActionsId(null)
     const nextName = window.prompt('Skill name', skill.name)
 
@@ -339,6 +354,12 @@ export function OutcomeDetailPage() {
   }
 
   async function handleSkillStage(skill: SkillItemRow, stage: SkillStage) {
+    trackUIEvent('outcomeDetail.actions.select', {
+      entity: 'skill',
+      action: `stage:${stage}`,
+      outcomeId: skill.outcome_id,
+      skillId: skill.id,
+    })
     setOpenSkillActionsId(null)
     setBusyKey(`skill-stage-${skill.id}`)
     setErrorMessage(null)
@@ -397,7 +418,17 @@ export function OutcomeDetailPage() {
           Back to outcomes
         </Link>
         <div className="actions-row">
-          <button className="btn" onClick={() => setShowAddSkillForm(true)} type="button">
+          <button
+            className="btn"
+            onClick={() => {
+              trackUIEvent('outcomeDetail.create.open', {
+                entity: 'skill',
+                outcomeId: outcome.id,
+              })
+              setShowAddSkillForm(true)
+            }}
+            type="button"
+          >
             + Add skill
           </button>
           <button
@@ -445,7 +476,17 @@ export function OutcomeDetailPage() {
               <div className="stack-xs">
                 <p>
                   <strong>
-                    <Link className="entity-title-link" to={`/outcomes/${outcome.id}/skills/${skill.id}`}>
+                    <Link
+                      className="entity-title-link"
+                      onClick={() =>
+                        trackUIEvent('outcomeDetail.entity.open', {
+                          entity: 'skill',
+                          outcomeId: skill.outcome_id,
+                          skillId: skill.id,
+                        })
+                      }
+                      to={`/outcomes/${outcome.id}/skills/${skill.id}`}
+                    >
                       {skill.name}
                     </Link>
                   </strong>
@@ -478,7 +519,19 @@ export function OutcomeDetailPage() {
                     aria-haspopup="menu"
                     className="btn btn-secondary icon-btn icon-btn-wide"
                     onClick={() =>
-                      setOpenSkillActionsId((current) => (current === skill.id ? null : skill.id))
+                      setOpenSkillActionsId((current) => {
+                        const next = current === skill.id ? null : skill.id
+
+                        if (next === skill.id) {
+                          trackUIEvent('outcomeDetail.actions.open', {
+                            entity: 'skill',
+                            outcomeId: skill.outcome_id,
+                            skillId: skill.id,
+                          })
+                        }
+
+                        return next
+                      })
                     }
                     type="button"
                   >

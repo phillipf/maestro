@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { formatLocalDate } from '../../lib/date'
 import { EllipsisIcon, PencilIcon } from '../../app/ui/ActionIcons'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 import {
   createMetric,
   createMetricEntry,
@@ -200,6 +201,11 @@ export function MetricsPage() {
         isPrimary: false,
       }))
       setShowCreateMetricForm(false)
+      trackUIEvent('metrics.create.success', {
+        entity: 'metric',
+        metricId: created.id,
+        outcomeId: created.outcome_id,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create metric'
       setErrorMessage(message)
@@ -209,6 +215,11 @@ export function MetricsPage() {
   }
 
   async function handleEditMetric(metric: MetricRow) {
+    trackUIEvent('metrics.edit.open', {
+      entity: 'metric',
+      metricId: metric.id,
+      outcomeId: metric.outcome_id,
+    })
     setOpenMetricActionsId(null)
     const nextName = window.prompt('Metric name', metric.name)
 
@@ -252,6 +263,12 @@ export function MetricsPage() {
   }
 
   async function handleSetPrimary(metric: MetricRow, isPrimary: boolean) {
+    trackUIEvent('metrics.actions.select', {
+      entity: 'metric',
+      action: isPrimary ? 'set_primary' : 'unset_primary',
+      metricId: metric.id,
+      outcomeId: metric.outcome_id,
+    })
     setOpenMetricActionsId(null)
     setBusyKey(`primary-${metric.id}`)
     setErrorMessage(null)
@@ -293,6 +310,12 @@ export function MetricsPage() {
   }
 
   async function handleDeleteMetric(metric: MetricRow) {
+    trackUIEvent('metrics.actions.select', {
+      entity: 'metric',
+      action: 'delete',
+      metricId: metric.id,
+      outcomeId: metric.outcome_id,
+    })
     setOpenMetricActionsId(null)
     const confirmed = window.confirm(`Delete metric "${metric.name}" and all its entries?`)
 
@@ -365,6 +388,10 @@ export function MetricsPage() {
         entryDate: toDateInputValue(),
         value: '',
       })
+      trackUIEvent('metrics.create.success', {
+        entity: 'metric_entry',
+        metricId: metric.id,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to add entry'
       setErrorMessage(message)
@@ -374,6 +401,11 @@ export function MetricsPage() {
   }
 
   async function handleEditEntry(entry: MetricEntryRow) {
+    trackUIEvent('metrics.edit.open', {
+      entity: 'metric_entry',
+      entryId: entry.id,
+      metricId: entry.metric_id,
+    })
     setOpenEntryActionsId(null)
     const nextDate = window.prompt('Entry date (YYYY-MM-DD)', entry.entry_date)
 
@@ -422,6 +454,11 @@ export function MetricsPage() {
   }
 
   async function handleDeleteEntry(entryId: string) {
+    trackUIEvent('metrics.actions.select', {
+      entity: 'metric_entry',
+      action: 'delete',
+      entryId,
+    })
     setOpenEntryActionsId(null)
     const confirmed = window.confirm('Delete this entry?')
 
@@ -480,7 +517,19 @@ export function MetricsPage() {
           aria-controls="create-metric-form"
           aria-expanded={showCreateMetricForm}
           className="btn"
-          onClick={() => setShowCreateMetricForm((current) => !current)}
+          onClick={() =>
+            setShowCreateMetricForm((current) => {
+              const next = !current
+
+              if (next) {
+                trackUIEvent('metrics.create.open', {
+                  entity: 'metric',
+                })
+              }
+
+              return next
+            })
+          }
           type="button"
         >
           {showCreateMetricForm ? 'Close' : '+ Add metric'}
@@ -614,7 +663,19 @@ export function MetricsPage() {
                     aria-haspopup="menu"
                     className="btn btn-secondary icon-btn icon-btn-wide"
                     onClick={() =>
-                      setOpenMetricActionsId((current) => (current === metric.id ? null : metric.id))
+                      setOpenMetricActionsId((current) => {
+                        const next = current === metric.id ? null : metric.id
+
+                        if (next === metric.id) {
+                          trackUIEvent('metrics.actions.open', {
+                            entity: 'metric',
+                            metricId: metric.id,
+                            outcomeId: metric.outcome_id,
+                          })
+                        }
+
+                        return next
+                      })
                     }
                     type="button"
                   >
@@ -715,7 +776,19 @@ export function MetricsPage() {
                           aria-haspopup="menu"
                           className="btn btn-secondary icon-btn icon-btn-wide"
                           onClick={() =>
-                            setOpenEntryActionsId((current) => (current === entry.id ? null : entry.id))
+                            setOpenEntryActionsId((current) => {
+                              const next = current === entry.id ? null : entry.id
+
+                              if (next === entry.id) {
+                                trackUIEvent('metrics.actions.open', {
+                                  entity: 'metric_entry',
+                                  entryId: entry.id,
+                                  metricId: entry.metric_id,
+                                })
+                              }
+
+                              return next
+                            })
                           }
                           type="button"
                         >

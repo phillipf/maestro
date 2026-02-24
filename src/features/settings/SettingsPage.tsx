@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { clearUIEvents, readUIEventCounts } from '../../lib/uiTelemetry'
 import { useAuth } from '../auth/useAuth'
 import {
   fetchOrCreateUserSettings,
@@ -39,6 +40,9 @@ export function SettingsPage() {
   const [notificationPermission, setNotificationPermission] = useState(initialPermission)
   const [showRemindersPanel, setShowRemindersPanel] = useState(false)
   const [showDataControlsPanel, setShowDataControlsPanel] = useState(false)
+  const [showTelemetryPanel, setShowTelemetryPanel] = useState(false)
+  const [telemetryVersion, setTelemetryVersion] = useState(0)
+  const [telemetrySummary, setTelemetrySummary] = useState<Array<[string, number]>>([])
 
   useEffect(() => {
     let cleanup: (() => void) | null = null
@@ -84,6 +88,15 @@ export function SettingsPage() {
 
     return 'Browser notification permission not granted yet.'
   }, [notificationPermission])
+
+  useEffect(() => {
+    if (!showTelemetryPanel) {
+      return
+    }
+
+    const counts = readUIEventCounts()
+    setTelemetrySummary(Object.entries(counts).sort((left, right) => right[1] - left[1]))
+  }, [showTelemetryPanel, telemetryVersion])
 
   async function handleSaveSettings() {
     if (!settings || !draft) {
@@ -330,6 +343,61 @@ export function SettingsPage() {
             >
               {busyKey === 'purge-data' ? 'Deleting...' : 'Delete all app data'}
             </button>
+          </div>
+        ) : null}
+      </article>
+
+      <article className="panel stack-sm">
+        <div className="section-head">
+          <h2>UI telemetry (local)</h2>
+          <button
+            aria-controls="settings-telemetry-panel"
+            aria-expanded={showTelemetryPanel}
+            className="btn btn-secondary"
+            onClick={() => setShowTelemetryPanel((current) => !current)}
+            type="button"
+          >
+            {showTelemetryPanel ? 'Close' : 'Open telemetry'}
+          </button>
+        </div>
+
+        {showTelemetryPanel ? (
+          <div className="stack-sm form-disclosure" id="settings-telemetry-panel">
+            <p className="muted">
+              Event counts are stored locally in this browser for UX tuning. No network telemetry is sent.
+            </p>
+
+            <div className="actions-row">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setTelemetryVersion((value) => value + 1)}
+                type="button"
+              >
+                Refresh summary
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  clearUIEvents()
+                  setTelemetryVersion((value) => value + 1)
+                }}
+                type="button"
+              >
+                Clear telemetry
+              </button>
+            </div>
+
+            {telemetrySummary.length === 0 ? (
+              <p className="muted">No UI telemetry events captured yet.</p>
+            ) : (
+              <div className="stack-xs">
+                {telemetrySummary.map(([name, count]) => (
+                  <p key={name}>
+                    <strong>{name}</strong>: {count}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
       </article>

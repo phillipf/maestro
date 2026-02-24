@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { fetchOutcomeById } from '../outcomes/outcomesApi'
 import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 import { setSkillStage } from './skillsApi'
 import {
   fetchSkillActionContext,
@@ -161,6 +162,12 @@ export function SkillDetailPage() {
       return
     }
 
+    trackUIEvent('skillDetail.actions.select', {
+      entity: 'skill',
+      action: `stage:${stage}`,
+      outcomeId: skill.outcome_id,
+      skillId: skill.id,
+    })
     setShowStageActions(false)
     setBusyKey(`stage-${stage}`)
     setErrorMessage(null)
@@ -229,7 +236,21 @@ export function SkillDetailPage() {
             aria-expanded={showStageActions}
             aria-haspopup="menu"
             className="btn btn-secondary icon-btn icon-btn-wide"
-            onClick={() => setShowStageActions((current) => !current)}
+            onClick={() =>
+              setShowStageActions((current) => {
+                const next = !current
+
+                if (next) {
+                  trackUIEvent('skillDetail.actions.open', {
+                    entity: 'skill',
+                    outcomeId: skill.outcome_id,
+                    skillId: skill.id,
+                  })
+                }
+
+                return next
+              })
+            }
             type="button"
           >
             <EllipsisIcon />

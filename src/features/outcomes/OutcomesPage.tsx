@@ -22,6 +22,7 @@ import type {
   Weekday,
 } from './types'
 import { EllipsisIcon, FunnelIcon, PencilIcon } from '../../app/ui/ActionIcons'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 
 type StatusFilter = 'all' | OutcomeStatus
 
@@ -322,6 +323,9 @@ export function OutcomesPage() {
       setOutcomes((previous) => [created, ...previous])
       setNewOutcome(EMPTY_OUTCOME_DRAFT)
       setShowCreateOutcomeForm(false)
+      trackUIEvent('outcomes.create.success', {
+        entity: 'outcome',
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create outcome'
       setErrorMessage(message)
@@ -331,6 +335,10 @@ export function OutcomesPage() {
   }
 
   function beginOutcomeEdit(outcome: OutcomeRow) {
+    trackUIEvent('outcomes.edit.open', {
+      entity: 'outcome',
+      outcomeId: outcome.id,
+    })
     setOpenOutcomeActionsId(null)
     setEditingOutcomeId(outcome.id)
     setEditingOutcomeDraft({
@@ -369,6 +377,11 @@ export function OutcomesPage() {
   }
 
   async function handleOutcomeStatus(outcome: OutcomeRow, status: OutcomeStatus) {
+    trackUIEvent('outcomes.actions.select', {
+      entity: 'outcome',
+      action: `status:${status}`,
+      outcomeId: outcome.id,
+    })
     setOpenOutcomeActionsId(null)
     setBusyKey(`outcome-status-${outcome.id}`)
     setErrorMessage(null)
@@ -411,6 +424,10 @@ export function OutcomesPage() {
       setOutputs((previous) => [...previous, created])
       setDraftForOutcome(outcomeId, makeDefaultOutputDraft())
       setExpandedAddOutputOutcomeId((current) => (current === outcomeId ? null : current))
+      trackUIEvent('outcomes.create.success', {
+        entity: 'output',
+        outcomeId,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create output'
       setErrorMessage(message)
@@ -420,6 +437,11 @@ export function OutcomesPage() {
   }
 
   function beginOutputEdit(output: OutputRow) {
+    trackUIEvent('outcomes.edit.open', {
+      entity: 'output',
+      outputId: output.id,
+      outcomeId: output.outcome_id,
+    })
     setOpenOutputActionsId(null)
     setEditingOutputId(output.id)
     setDraftForOutcome(output.id, outputToDraft(output))
@@ -486,6 +508,12 @@ export function OutcomesPage() {
   }
 
   async function handleOutputStatus(output: OutputRow, status: OutputStatus) {
+    trackUIEvent('outcomes.actions.select', {
+      entity: 'output',
+      action: `status:${status}`,
+      outputId: output.id,
+      outcomeId: output.outcome_id,
+    })
     setOpenOutputActionsId(null)
     setBusyKey(`output-status-${output.id}`)
     setErrorMessage(null)
@@ -538,7 +566,19 @@ export function OutcomesPage() {
           aria-controls="create-outcome-form"
           aria-expanded={showCreateOutcomeForm}
           className="btn"
-          onClick={() => setShowCreateOutcomeForm((current) => !current)}
+          onClick={() =>
+            setShowCreateOutcomeForm((current) => {
+              const next = !current
+
+              if (next) {
+                trackUIEvent('outcomes.create.open', {
+                  entity: 'outcome',
+                })
+              }
+
+              return next
+            })
+          }
           type="button"
         >
           {showCreateOutcomeForm ? 'Close' : '+ Add outcome'}
@@ -548,7 +588,17 @@ export function OutcomesPage() {
           aria-controls="outcome-filter-panel"
           aria-expanded={showFilterPanel}
           className="btn btn-secondary icon-btn icon-btn-wide"
-          onClick={() => setShowFilterPanel((current) => !current)}
+          onClick={() =>
+            setShowFilterPanel((current) => {
+              const next = !current
+
+              if (next) {
+                trackUIEvent('outcomes.filter.open')
+              }
+
+              return next
+            })
+          }
           type="button"
         >
           <FunnelIcon />
@@ -610,6 +660,9 @@ export function OutcomesPage() {
                 onClick={() => {
                   setFilter('all')
                   setShowFilterPanel(false)
+                  trackUIEvent('outcomes.filter.apply', {
+                    value: 'all',
+                  })
                 }}
                 type="button"
               >
@@ -625,6 +678,9 @@ export function OutcomesPage() {
                 onClick={() => {
                   setFilter(item.value)
                   setShowFilterPanel(false)
+                  trackUIEvent('outcomes.filter.apply', {
+                    value: item.value,
+                  })
                 }}
                 type="button"
               >
@@ -695,7 +751,16 @@ export function OutcomesPage() {
                   ) : (
                     <>
                       <h2>
-                        <Link className="entity-title-link" to={`/outcomes/${outcome.id}`}>
+                        <Link
+                          className="entity-title-link"
+                          onClick={() =>
+                            trackUIEvent('outcomes.entity.open', {
+                              entity: 'outcome',
+                              outcomeId: outcome.id,
+                            })
+                          }
+                          to={`/outcomes/${outcome.id}`}
+                        >
                           {outcome.title}
                         </Link>
                       </h2>
@@ -736,9 +801,18 @@ export function OutcomesPage() {
                           aria-haspopup="menu"
                           className="btn btn-secondary icon-btn icon-btn-wide"
                           onClick={() =>
-                            setOpenOutcomeActionsId((current) =>
-                              current === outcome.id ? null : outcome.id,
-                            )
+                            setOpenOutcomeActionsId((current) => {
+                              const next = current === outcome.id ? null : outcome.id
+
+                              if (next === outcome.id) {
+                                trackUIEvent('outcomes.actions.open', {
+                                  entity: 'outcome',
+                                  outcomeId: outcome.id,
+                                })
+                              }
+
+                              return next
+                            })
                           }
                           type="button"
                         >
@@ -826,9 +900,19 @@ export function OutcomesPage() {
                                     aria-haspopup="menu"
                                     className="btn btn-secondary icon-btn icon-btn-wide"
                                     onClick={() =>
-                                      setOpenOutputActionsId((current) =>
-                                        current === output.id ? null : output.id,
-                                      )
+                                      setOpenOutputActionsId((current) => {
+                                        const next = current === output.id ? null : output.id
+
+                                        if (next === output.id) {
+                                          trackUIEvent('outcomes.actions.open', {
+                                            entity: 'output',
+                                            outputId: output.id,
+                                            outcomeId: outcome.id,
+                                          })
+                                        }
+
+                                        return next
+                                      })
                                     }
                                     type="button"
                                   >
@@ -952,9 +1036,18 @@ export function OutcomesPage() {
                     aria-expanded={expandedAddOutputOutcomeId === outcome.id}
                     className="btn btn-secondary"
                     onClick={() =>
-                      setExpandedAddOutputOutcomeId((current) =>
-                        current === outcome.id ? null : outcome.id,
-                      )
+                      setExpandedAddOutputOutcomeId((current) => {
+                        const next = current === outcome.id ? null : outcome.id
+
+                        if (next === outcome.id) {
+                          trackUIEvent('outcomes.create.open', {
+                            entity: 'output',
+                            outcomeId: outcome.id,
+                          })
+                        }
+
+                        return next
+                      })
                     }
                     type="button"
                   >

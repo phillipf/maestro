@@ -12,6 +12,7 @@ import {
 import type { DashboardOutput } from './types'
 import type { SkillItemRow, SkillPriority } from '../skills/types'
 import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 
 type ScheduledOutput = {
   outcomeId: string
@@ -137,7 +138,14 @@ export function ScheduledOutputCard({
         <button
           className="btn"
           disabled={isSaving}
-          onClick={() => void onMarkDone(output)}
+          onClick={() => {
+            trackUIEvent('dashboard.log.quick', {
+              action: 'mark_done',
+              outputId: output.id,
+              outcomeId,
+            })
+            void onMarkDone(output)
+          }}
           type="button"
         >
           Mark done
@@ -145,7 +153,14 @@ export function ScheduledOutputCard({
         <button
           className="btn btn-secondary"
           disabled={isSaving}
-          onClick={() => void onMarkMissed(output)}
+          onClick={() => {
+            trackUIEvent('dashboard.log.quick', {
+              action: 'mark_missed',
+              outputId: output.id,
+              outcomeId,
+            })
+            void onMarkMissed(output)
+          }}
           type="button"
         >
           Mark missed
@@ -156,7 +171,20 @@ export function ScheduledOutputCard({
             aria-expanded={showActionsMenu}
             aria-haspopup="menu"
             className="btn btn-secondary icon-btn icon-btn-wide"
-            onClick={() => setShowActionsMenu((current) => !current)}
+            onClick={() =>
+              setShowActionsMenu((current) => {
+                const next = !current
+
+                if (next) {
+                  trackUIEvent('dashboard.actions.open', {
+                    outputId: output.id,
+                    outcomeId,
+                  })
+                }
+
+                return next
+              })
+            }
             type="button"
           >
             <EllipsisIcon />
@@ -169,6 +197,11 @@ export function ScheduledOutputCard({
                 onClick={() => {
                   setShowActionsMenu(false)
                   setShowNotesField((current) => !current)
+                  trackUIEvent('dashboard.actions.select', {
+                    action: notesVisible ? 'hide_note' : 'add_note',
+                    outputId: output.id,
+                    outcomeId,
+                  })
                 }}
                 role="menuitem"
                 type="button"
@@ -181,6 +214,11 @@ export function ScheduledOutputCard({
                   disabled={isSkillPanelBusy}
                   onClick={() => {
                     setShowActionsMenu(false)
+                    trackUIEvent('dashboard.actions.select', {
+                      action: expandedSkillOutputId === output.id ? 'hide_skills_panel' : 'open_skills_panel',
+                      outputId: output.id,
+                      outcomeId,
+                    })
                     void onToggleSkillPanel(row)
                   }}
                   role="menuitem"
@@ -280,7 +318,13 @@ export function ScheduledOutputCard({
       <button
         className="btn"
         disabled={isSaving}
-        onClick={() => void onPersistLog(output.id, draft, saveKey)}
+        onClick={() => {
+          trackUIEvent('dashboard.log.save', {
+            outputId: output.id,
+            outcomeId,
+          })
+          void onPersistLog(output.id, draft, saveKey)
+        }}
         type="button"
       >
         {isSaving ? 'Saving...' : 'Save log'}
@@ -453,7 +497,13 @@ export function ScheduledOutputCard({
               <button
                 className="btn"
                 disabled={isSkillPanelBusy}
-                onClick={() => void onSaveSkillsForOutput(row)}
+                onClick={() => {
+                  trackUIEvent('dashboard.skills.save', {
+                    outputId: output.id,
+                    outcomeId,
+                  })
+                  void onSaveSkillsForOutput(row)
+                }}
                 type="button"
               >
                 {busyKey === `save-skills-${output.id}` ? 'Saving...' : 'Save skills'}
@@ -461,7 +511,13 @@ export function ScheduledOutputCard({
               <button
                 className="btn btn-secondary"
                 disabled={isSkillPanelBusy}
-                onClick={onCloseSkillPanel}
+                onClick={() => {
+                  trackUIEvent('dashboard.skills.skip', {
+                    outputId: output.id,
+                    outcomeId,
+                  })
+                  onCloseSkillPanel()
+                }}
                 type="button"
               >
                 Skip - just log output

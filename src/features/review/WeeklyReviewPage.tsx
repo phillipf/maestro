@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
+import { EllipsisIcon, PencilIcon } from '../../app/ui/ActionIcons'
 import { addLocalDays, formatLocalDate, parseLocalDate } from '../../lib/date'
+import { trackUIEvent } from '../../lib/uiTelemetry'
 import type { OutcomeRow, OutputRow } from '../outcomes/types'
 import { computeWeeklySkillSummaryByOutcome } from '../skills/skillsApi'
 import {
@@ -501,7 +504,19 @@ export function WeeklyReviewPage() {
             <header className="outcome-header">
               <div className="stack-xs">
                 <p className="eyebrow">{outcome.category || 'No category'}</p>
-                <h2>{outcome.title}</h2>
+                <h2>
+                  <Link
+                    className="entity-title-link"
+                    onClick={() => {
+                      trackUIEvent('weekly_review_outcome_open', {
+                        outcomeId: outcome.id,
+                      })
+                    }}
+                    to={`/outcomes/${outcome.id}`}
+                  >
+                    {outcome.title}
+                  </Link>
+                </h2>
                 <p className="muted">
                   {skillSummary.skillsWorkedCount === 0
                     ? 'No skills practiced this week'
@@ -561,18 +576,27 @@ export function WeeklyReviewPage() {
                           <button
                             aria-controls={`shortfall-panel-${output.id}`}
                             aria-expanded={shortfallPanelExpanded}
-                            className="btn btn-secondary"
-                            onClick={() =>
+                            aria-label={`${
+                              shortfallPanelExpanded ? 'Hide' : 'Show'
+                            } shortfall tags for ${output.description}`}
+                            className="btn btn-secondary icon-btn"
+                            onClick={() => {
                               setExpandedShortfallOutputIds((previous) => ({
                                 ...previous,
                                 [output.id]: !shortfallPanelExpanded,
                               }))
-                            }
+                              trackUIEvent('weekly_review_shortfall_panel_toggle', {
+                                outputId: output.id,
+                                nextState: shortfallPanelExpanded ? 'closed' : 'open',
+                              })
+                            }}
+                            title={`${
+                              shortfallPanelExpanded ? 'Hide' : 'Show'
+                            } shortfall tags for ${output.description}`}
                             type="button"
                           >
-                            {shortfallPanelExpanded
-                              ? 'Hide tags'
-                              : `Tag shortfalls (${shortfalls.length})`}
+                            <EllipsisIcon />
+                            <span className="filter-badge">{shortfalls.length}</span>
                           </button>
                         </div>
 
@@ -655,20 +679,26 @@ export function WeeklyReviewPage() {
                 <button
                   aria-controls={`reflection-panel-${outcome.id}`}
                   aria-expanded={expandedReflectionOutcomeIds[outcome.id] ?? false}
-                  className="btn btn-secondary"
-                  onClick={() =>
+                  aria-label={`${
+                    expandedReflectionOutcomeIds[outcome.id] ?? false ? 'Hide' : 'Open'
+                  } reflection for ${outcome.title}`}
+                  className="btn btn-secondary icon-btn"
+                  onClick={() => {
                     setExpandedReflectionOutcomeIds((previous) => ({
                       ...previous,
                       [outcome.id]: !(previous[outcome.id] ?? false),
                     }))
-                  }
+                    trackUIEvent('weekly_review_reflection_panel_toggle', {
+                      outcomeId: outcome.id,
+                      nextState: expandedReflectionOutcomeIds[outcome.id] ?? false ? 'closed' : 'open',
+                    })
+                  }}
+                  title={`${
+                    expandedReflectionOutcomeIds[outcome.id] ?? false ? 'Hide' : 'Open'
+                  } reflection for ${outcome.title}`}
                   type="button"
                 >
-                  {expandedReflectionOutcomeIds[outcome.id] ?? false
-                    ? 'Hide reflection'
-                    : hasReflectionContent(reflectionDraft)
-                      ? 'Edit reflection'
-                      : 'Write reflection'}
+                  <PencilIcon />
                 </button>
               </div>
 

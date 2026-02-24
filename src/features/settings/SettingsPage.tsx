@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { clearUIEvents, readUIEventCounts } from '../../lib/uiTelemetry'
+import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { clearUIEvents, readUIEventCounts, trackUIEvent } from '../../lib/uiTelemetry'
 import { useAuth } from '../auth/useAuth'
 import {
   fetchOrCreateUserSettings,
@@ -41,6 +42,7 @@ export function SettingsPage() {
   const [showRemindersPanel, setShowRemindersPanel] = useState(false)
   const [showDataControlsPanel, setShowDataControlsPanel] = useState(false)
   const [showTelemetryPanel, setShowTelemetryPanel] = useState(false)
+  const [openActionsPanel, setOpenActionsPanel] = useState<'reminders' | 'telemetry' | null>(null)
   const [telemetryVersion, setTelemetryVersion] = useState(0)
   const [telemetrySummary, setTelemetrySummary] = useState<Array<[string, number]>>([])
 
@@ -97,6 +99,34 @@ export function SettingsPage() {
     const counts = readUIEventCounts()
     setTelemetrySummary(Object.entries(counts).sort((left, right) => right[1] - left[1]))
   }, [showTelemetryPanel, telemetryVersion])
+
+  useEffect(() => {
+    if (!openActionsPanel) {
+      return
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target instanceof Element && event.target.closest('.menu-shell')) {
+        return
+      }
+
+      setOpenActionsPanel(null)
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpenActionsPanel(null)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openActionsPanel])
 
   async function handleSaveSettings() {
     if (!settings || !draft) {
@@ -235,7 +265,19 @@ export function SettingsPage() {
             aria-controls="settings-reminders-panel"
             aria-expanded={showRemindersPanel}
             className="btn btn-secondary"
-            onClick={() => setShowRemindersPanel((current) => !current)}
+            onClick={() =>
+              setShowRemindersPanel((current) => {
+                const nextState = !current
+                if (!nextState && openActionsPanel === 'reminders') {
+                  setOpenActionsPanel(null)
+                }
+                trackUIEvent('settings_panel_toggle', {
+                  panel: 'reminders',
+                  nextState: nextState ? 'open' : 'closed',
+                })
+                return nextState
+              })
+            }
             type="button"
           >
             {showRemindersPanel ? 'Close' : 'Configure reminders'}
@@ -303,13 +345,59 @@ export function SettingsPage() {
 
             <p className="hint">{reminderCapabilityText}</p>
 
-            <div className="actions-row">
-              <button className="btn btn-secondary" onClick={() => void handleRequestPermission()} type="button">
-                Request permission
+            <div className="menu-shell">
+              <button
+                aria-expanded={openActionsPanel === 'reminders'}
+                aria-haspopup="menu"
+                className="btn btn-secondary icon-btn icon-btn-wide"
+                onClick={() => {
+                  setOpenActionsPanel((current) => {
+                    const nextState = current === 'reminders' ? null : 'reminders'
+                    trackUIEvent('settings_actions_menu_toggle', {
+                      panel: 'reminders',
+                      nextState: nextState === 'reminders' ? 'open' : 'closed',
+                    })
+                    return nextState
+                  })
+                }}
+                type="button"
+              >
+                <EllipsisIcon />
+                <span>Actions</span>
               </button>
-              <button className="btn btn-secondary" onClick={handleTestNotification} type="button">
-                Send test notification
-              </button>
+
+              {openActionsPanel === 'reminders' ? (
+                <div className="menu-popover" role="menu">
+                  <button
+                    className="menu-item-btn"
+                    onClick={() => {
+                      setOpenActionsPanel(null)
+                      trackUIEvent('settings_reminders_action_select', {
+                        action: 'request_permission',
+                      })
+                      void handleRequestPermission()
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    Request permission
+                  </button>
+                  <button
+                    className="menu-item-btn"
+                    onClick={() => {
+                      setOpenActionsPanel(null)
+                      trackUIEvent('settings_reminders_action_select', {
+                        action: 'send_test_notification',
+                      })
+                      handleTestNotification()
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    Send test notification
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -322,7 +410,16 @@ export function SettingsPage() {
             aria-controls="settings-data-controls"
             aria-expanded={showDataControlsPanel}
             className="btn btn-secondary"
-            onClick={() => setShowDataControlsPanel((current) => !current)}
+            onClick={() =>
+              setShowDataControlsPanel((current) => {
+                const nextState = !current
+                trackUIEvent('settings_panel_toggle', {
+                  panel: 'data_controls',
+                  nextState: nextState ? 'open' : 'closed',
+                })
+                return nextState
+              })
+            }
             type="button"
           >
             {showDataControlsPanel ? 'Close' : 'Open danger zone'}
@@ -354,7 +451,19 @@ export function SettingsPage() {
             aria-controls="settings-telemetry-panel"
             aria-expanded={showTelemetryPanel}
             className="btn btn-secondary"
-            onClick={() => setShowTelemetryPanel((current) => !current)}
+            onClick={() =>
+              setShowTelemetryPanel((current) => {
+                const nextState = !current
+                if (!nextState && openActionsPanel === 'telemetry') {
+                  setOpenActionsPanel(null)
+                }
+                trackUIEvent('settings_panel_toggle', {
+                  panel: 'ui_telemetry',
+                  nextState: nextState ? 'open' : 'closed',
+                })
+                return nextState
+              })
+            }
             type="button"
           >
             {showTelemetryPanel ? 'Close' : 'Open telemetry'}
@@ -367,24 +476,60 @@ export function SettingsPage() {
               Event counts are stored locally in this browser for UX tuning. No network telemetry is sent.
             </p>
 
-            <div className="actions-row">
+            <div className="menu-shell">
               <button
-                className="btn btn-secondary"
-                onClick={() => setTelemetryVersion((value) => value + 1)}
-                type="button"
-              >
-                Refresh summary
-              </button>
-              <button
-                className="btn btn-secondary"
+                aria-expanded={openActionsPanel === 'telemetry'}
+                aria-haspopup="menu"
+                className="btn btn-secondary icon-btn icon-btn-wide"
                 onClick={() => {
-                  clearUIEvents()
-                  setTelemetryVersion((value) => value + 1)
+                  setOpenActionsPanel((current) => {
+                    const nextState = current === 'telemetry' ? null : 'telemetry'
+                    trackUIEvent('settings_actions_menu_toggle', {
+                      panel: 'ui_telemetry',
+                      nextState: nextState === 'telemetry' ? 'open' : 'closed',
+                    })
+                    return nextState
+                  })
                 }}
                 type="button"
               >
-                Clear telemetry
+                <EllipsisIcon />
+                <span>Actions</span>
               </button>
+
+              {openActionsPanel === 'telemetry' ? (
+                <div className="menu-popover" role="menu">
+                  <button
+                    className="menu-item-btn"
+                    onClick={() => {
+                      setOpenActionsPanel(null)
+                      trackUIEvent('settings_telemetry_action_select', {
+                        action: 'refresh_summary',
+                      })
+                      setTelemetryVersion((value) => value + 1)
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    Refresh summary
+                  </button>
+                  <button
+                    className="menu-item-btn"
+                    onClick={() => {
+                      setOpenActionsPanel(null)
+                      trackUIEvent('settings_telemetry_action_select', {
+                        action: 'clear_telemetry',
+                      })
+                      clearUIEvents()
+                      setTelemetryVersion((value) => value + 1)
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    Clear telemetry
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {telemetrySummary.length === 0 ? (

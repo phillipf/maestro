@@ -201,7 +201,12 @@ select {
 .icon-svg {
   display: block;
   height: 1rem;
+  transition: transform 120ms ease;
   width: 1rem;
+}
+
+.icon-rotated {
+  transform: rotate(180deg);
 }
 
 .filter-badge {

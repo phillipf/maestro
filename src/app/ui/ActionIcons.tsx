@@ -38,3 +38,26 @@ export function EllipsisIcon() {
     </svg>
   )
 }
+
+type ChevronIconProps = {
+  open?: boolean
+}
+
+export function ChevronIcon({ open = false }: ChevronIconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`icon-svg${open ? ' icon-rotated' : ''}`}
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="m7 10 5 5 5-5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}

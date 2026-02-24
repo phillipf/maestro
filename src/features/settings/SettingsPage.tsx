@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { ChevronIcon, EllipsisIcon } from '../../app/ui/ActionIcons'
 import { clearUIEvents, readUIEventCounts, trackUIEvent } from '../../lib/uiTelemetry'
 import { useAuth } from '../auth/useAuth'
 import {
@@ -264,7 +264,8 @@ export function SettingsPage() {
           <button
             aria-controls="settings-reminders-panel"
             aria-expanded={showRemindersPanel}
-            className="btn btn-secondary"
+            aria-label={`${showRemindersPanel ? 'Collapse' : 'Expand'} reminders settings`}
+            className="btn btn-secondary icon-btn"
             onClick={() =>
               setShowRemindersPanel((current) => {
                 const nextState = !current
@@ -278,9 +279,10 @@ export function SettingsPage() {
                 return nextState
               })
             }
+            title={`${showRemindersPanel ? 'Collapse' : 'Expand'} reminders settings`}
             type="button"
           >
-            {showRemindersPanel ? 'Close' : 'Configure reminders'}
+            <ChevronIcon open={showRemindersPanel} />
           </button>
         </div>
 
@@ -409,7 +411,8 @@ export function SettingsPage() {
           <button
             aria-controls="settings-data-controls"
             aria-expanded={showDataControlsPanel}
-            className="btn btn-secondary"
+            aria-label={`${showDataControlsPanel ? 'Collapse' : 'Expand'} data controls`}
+            className="btn btn-secondary icon-btn"
             onClick={() =>
               setShowDataControlsPanel((current) => {
                 const nextState = !current
@@ -420,9 +423,10 @@ export function SettingsPage() {
                 return nextState
               })
             }
+            title={`${showDataControlsPanel ? 'Collapse' : 'Expand'} data controls`}
             type="button"
           >
-            {showDataControlsPanel ? 'Close' : 'Open danger zone'}
+            <ChevronIcon open={showDataControlsPanel} />
           </button>
         </div>
 
@@ -450,7 +454,8 @@ export function SettingsPage() {
           <button
             aria-controls="settings-telemetry-panel"
             aria-expanded={showTelemetryPanel}
-            className="btn btn-secondary"
+            aria-label={`${showTelemetryPanel ? 'Collapse' : 'Expand'} UI telemetry`}
+            className="btn btn-secondary icon-btn"
             onClick={() =>
               setShowTelemetryPanel((current) => {
                 const nextState = !current
@@ -464,9 +469,10 @@ export function SettingsPage() {
                 return nextState
               })
             }
+            title={`${showTelemetryPanel ? 'Collapse' : 'Expand'} UI telemetry`}
             type="button"
           >
-            {showTelemetryPanel ? 'Close' : 'Open telemetry'}
+            <ChevronIcon open={showTelemetryPanel} />
           </button>
         </div>
 

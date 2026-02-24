@@ -21,7 +21,7 @@ import type {
   OutputStatus,
   Weekday,
 } from './types'
-import { EllipsisIcon, FunnelIcon, PencilIcon } from '../../app/ui/ActionIcons'
+import { ChevronIcon, EllipsisIcon, FunnelIcon, PencilIcon } from '../../app/ui/ActionIcons'
 import { trackUIEvent } from '../../lib/uiTelemetry'
 
 type StatusFilter = 'all' | OutcomeStatus
@@ -587,7 +587,8 @@ export function OutcomesPage() {
         <button
           aria-controls="outcome-filter-panel"
           aria-expanded={showFilterPanel}
-          className="btn btn-secondary icon-btn icon-btn-wide"
+          aria-label={showFilterPanel ? 'Hide outcome filters' : 'Show outcome filters'}
+          className="btn btn-secondary icon-btn"
           onClick={() =>
             setShowFilterPanel((current) => {
               const next = !current
@@ -599,10 +600,10 @@ export function OutcomesPage() {
               return next
             })
           }
+          title={showFilterPanel ? 'Hide outcome filters' : 'Show outcome filters'}
           type="button"
         >
           <FunnelIcon />
-          <span>Filter</span>
           {activeFilterCount > 0 ? <span className="filter-badge">{activeFilterCount}</span> : null}
         </button>
       </article>
@@ -1034,7 +1035,10 @@ export function OutcomesPage() {
                   <button
                     aria-controls={`add-output-form-${outcome.id}`}
                     aria-expanded={expandedAddOutputOutcomeId === outcome.id}
-                    className="btn btn-secondary"
+                    aria-label={`${
+                      expandedAddOutputOutcomeId === outcome.id ? 'Collapse' : 'Expand'
+                    } add output for ${outcome.title}`}
+                    className="btn btn-secondary icon-btn"
                     onClick={() =>
                       setExpandedAddOutputOutcomeId((current) => {
                         const next = current === outcome.id ? null : outcome.id
@@ -1049,9 +1053,12 @@ export function OutcomesPage() {
                         return next
                       })
                     }
+                    title={`${
+                      expandedAddOutputOutcomeId === outcome.id ? 'Collapse' : 'Expand'
+                    } add output for ${outcome.title}`}
                     type="button"
                   >
-                    {expandedAddOutputOutcomeId === outcome.id ? 'Close' : 'Add output'}
+                    <ChevronIcon open={expandedAddOutputOutcomeId === outcome.id} />
                   </button>
                 </div>
 

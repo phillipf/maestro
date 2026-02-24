@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { fetchOutcomeById } from '../outcomes/outcomesApi'
+import { EllipsisIcon } from '../../app/ui/ActionIcons'
 import { setSkillStage } from './skillsApi'
 import {
   fetchSkillActionContext,
@@ -53,6 +54,7 @@ export function SkillDetailPage() {
   const [skill, setSkill] = useState<SkillItemRow | null>(null)
   const [logs, setLogs] = useState<SkillLogRow[]>([])
   const [outcomeTitle, setOutcomeTitle] = useState<string>('')
+  const [showStageActions, setShowStageActions] = useState(false)
   const [contextByAction, setContextByAction] = useState<
     Record<string, { actionDate: string; outputId: string; outputDescription: string | null }>
   >({})
@@ -81,6 +83,7 @@ export function SkillDetailPage() {
       setOutcomeTitle(outcome.title)
       setSkill(skillRow)
       setLogs(skillLogs)
+      setShowStageActions(false)
 
       const actionIds = skillLogs
         .map((log) => log.action_log_id)
@@ -99,6 +102,38 @@ export function SkillDetailPage() {
   useEffect(() => {
     void loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (!showStageActions) {
+      return
+    }
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return
+      }
+
+      if (event.target.closest('.menu-shell')) {
+        return
+      }
+
+      setShowStageActions(false)
+    }
+
+    window.addEventListener('click', handleDocumentClick)
+    return () => window.removeEventListener('click', handleDocumentClick)
+  }, [showStageActions])
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowStageActions(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
 
   const confidencePoints = useMemo(() => {
     return logs
@@ -126,6 +161,7 @@ export function SkillDetailPage() {
       return
     }
 
+    setShowStageActions(false)
     setBusyKey(`stage-${stage}`)
     setErrorMessage(null)
 
@@ -188,18 +224,33 @@ export function SkillDetailPage() {
           Back to outcome
         </Link>
 
-        <div className="actions-row">
-          {stageActions(skill.stage).map((stage) => (
-            <button
-              className="btn btn-secondary"
-              disabled={busyKey === `stage-${stage}`}
-              key={stage}
-              onClick={() => void handleStageChange(stage)}
-              type="button"
-            >
-              {stageButtonLabel(stage)}
-            </button>
-          ))}
+        <div className="menu-shell">
+          <button
+            aria-expanded={showStageActions}
+            aria-haspopup="menu"
+            className="btn btn-secondary icon-btn icon-btn-wide"
+            onClick={() => setShowStageActions((current) => !current)}
+            type="button"
+          >
+            <EllipsisIcon />
+            <span>Actions</span>
+          </button>
+          {showStageActions ? (
+            <div className="menu-popover" role="menu">
+              {stageActions(skill.stage).map((stage) => (
+                <button
+                  className="menu-item-btn"
+                  disabled={busyKey === `stage-${stage}`}
+                  key={stage}
+                  onClick={() => void handleStageChange(stage)}
+                  role="menuitem"
+                  type="button"
+                >
+                  {stageButtonLabel(stage)}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </article>
 

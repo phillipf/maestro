@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { formatLocalDate } from '../../lib/date'
+import { EllipsisIcon, PencilIcon } from '../../app/ui/ActionIcons'
 import {
   createMetric,
   createMetricEntry,
@@ -43,6 +44,8 @@ export function MetricsPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [showCreateMetricForm, setShowCreateMetricForm] = useState(false)
+  const [openMetricActionsId, setOpenMetricActionsId] = useState<string | null>(null)
+  const [openEntryActionsId, setOpenEntryActionsId] = useState<string | null>(null)
 
   const [metricDraft, setMetricDraft] = useState<MetricDraft>({
     outcomeId: '',
@@ -61,6 +64,8 @@ export function MetricsPage() {
       const data = await fetchMetricsPayload()
       setPayload(data)
       setShowCreateMetricForm(data.metrics.length === 0)
+      setOpenMetricActionsId(null)
+      setOpenEntryActionsId(null)
 
       setMetricDraft((previous) => ({
         ...previous,
@@ -86,6 +91,42 @@ export function MetricsPage() {
 
   useEffect(() => {
     void loadMetrics()
+  }, [])
+
+  useEffect(() => {
+    if (!openMetricActionsId && !openEntryActionsId) {
+      return
+    }
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return
+      }
+
+      if (event.target.closest('.menu-shell')) {
+        return
+      }
+
+      setOpenMetricActionsId(null)
+      setOpenEntryActionsId(null)
+    }
+
+    window.addEventListener('click', handleDocumentClick)
+    return () => window.removeEventListener('click', handleDocumentClick)
+  }, [openMetricActionsId, openEntryActionsId])
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') {
+        return
+      }
+
+      setOpenMetricActionsId(null)
+      setOpenEntryActionsId(null)
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
   }, [])
 
   const entriesByMetric = useMemo(() => {
@@ -168,6 +209,7 @@ export function MetricsPage() {
   }
 
   async function handleEditMetric(metric: MetricRow) {
+    setOpenMetricActionsId(null)
     const nextName = window.prompt('Metric name', metric.name)
 
     if (nextName === null) {
@@ -210,6 +252,7 @@ export function MetricsPage() {
   }
 
   async function handleSetPrimary(metric: MetricRow, isPrimary: boolean) {
+    setOpenMetricActionsId(null)
     setBusyKey(`primary-${metric.id}`)
     setErrorMessage(null)
 
@@ -250,6 +293,7 @@ export function MetricsPage() {
   }
 
   async function handleDeleteMetric(metric: MetricRow) {
+    setOpenMetricActionsId(null)
     const confirmed = window.confirm(`Delete metric "${metric.name}" and all its entries?`)
 
     if (!confirmed) {
@@ -330,6 +374,7 @@ export function MetricsPage() {
   }
 
   async function handleEditEntry(entry: MetricEntryRow) {
+    setOpenEntryActionsId(null)
     const nextDate = window.prompt('Entry date (YYYY-MM-DD)', entry.entry_date)
 
     if (nextDate === null) {
@@ -377,6 +422,7 @@ export function MetricsPage() {
   }
 
   async function handleDeleteEntry(entryId: string) {
+    setOpenEntryActionsId(null)
     const confirmed = window.confirm('Delete this entry?')
 
     if (!confirmed) {
@@ -429,21 +475,21 @@ export function MetricsPage() {
 
       {errorMessage ? <p className="status-bad">{errorMessage}</p> : null}
 
-      <article className="panel stack-sm">
-        <div className="section-head">
-          <h2>Add metric</h2>
-          <button
-            aria-controls="create-metric-form"
-            aria-expanded={showCreateMetricForm}
-            className="btn btn-secondary"
-            onClick={() => setShowCreateMetricForm((current) => !current)}
-            type="button"
-          >
-            {showCreateMetricForm ? 'Close' : 'Add metric'}
-          </button>
-        </div>
+      <article className="panel section-head">
+        <button
+          aria-controls="create-metric-form"
+          aria-expanded={showCreateMetricForm}
+          className="btn"
+          onClick={() => setShowCreateMetricForm((current) => !current)}
+          type="button"
+        >
+          {showCreateMetricForm ? 'Close' : '+ Add metric'}
+        </button>
+      </article>
 
-        {showCreateMetricForm ? (
+      {showCreateMetricForm ? (
+        <article className="panel stack-sm">
+          <h2>Add metric</h2>
           <div className="field-grid form-disclosure" id="create-metric-form">
             <label className="form-row" htmlFor="metric-outcome">
               Outcome
@@ -527,8 +573,8 @@ export function MetricsPage() {
               </button>
             </div>
           </div>
-        ) : null}
-      </article>
+        </article>
+      ) : null}
 
       {payload?.metrics.length === 0 ? <article className="panel">No metrics yet.</article> : null}
 
@@ -553,29 +599,51 @@ export function MetricsPage() {
               <div className="actions-row">
                 {metric.is_primary ? <p className="pill">primary</p> : null}
                 <button
-                  className="btn btn-secondary"
+                  aria-label={`Edit ${metric.name}`}
+                  className="btn btn-secondary icon-btn"
                   disabled={busyKey === `edit-metric-${metric.id}`}
                   onClick={() => void handleEditMetric(metric)}
+                  title={`Edit ${metric.name}`}
                   type="button"
                 >
-                  Edit
+                  <PencilIcon />
                 </button>
-                <button
-                  className="btn btn-secondary"
-                  disabled={busyKey === `primary-${metric.id}`}
-                  onClick={() => void handleSetPrimary(metric, !metric.is_primary)}
-                  type="button"
-                >
-                  {metric.is_primary ? 'Unset primary' : 'Set primary'}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  disabled={busyKey === `delete-metric-${metric.id}`}
-                  onClick={() => void handleDeleteMetric(metric)}
-                  type="button"
-                >
-                  Delete
-                </button>
+                <div className="menu-shell">
+                  <button
+                    aria-expanded={openMetricActionsId === metric.id}
+                    aria-haspopup="menu"
+                    className="btn btn-secondary icon-btn icon-btn-wide"
+                    onClick={() =>
+                      setOpenMetricActionsId((current) => (current === metric.id ? null : metric.id))
+                    }
+                    type="button"
+                  >
+                    <EllipsisIcon />
+                    <span>Actions</span>
+                  </button>
+                  {openMetricActionsId === metric.id ? (
+                    <div className="menu-popover" role="menu">
+                      <button
+                        className="menu-item-btn"
+                        disabled={busyKey === `primary-${metric.id}`}
+                        onClick={() => void handleSetPrimary(metric, !metric.is_primary)}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {metric.is_primary ? 'Unset primary' : 'Set primary'}
+                      </button>
+                      <button
+                        className="menu-item-btn"
+                        disabled={busyKey === `delete-metric-${metric.id}`}
+                        onClick={() => void handleDeleteMetric(metric)}
+                        role="menuitem"
+                        type="button"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </header>
 
@@ -632,21 +700,42 @@ export function MetricsPage() {
                     </p>
                     <div className="actions-row">
                       <button
-                        className="btn btn-secondary"
+                        aria-label={`Edit entry ${entry.entry_date}`}
+                        className="btn btn-secondary icon-btn"
                         disabled={busyKey === `edit-entry-${entry.id}`}
                         onClick={() => void handleEditEntry(entry)}
+                        title={`Edit entry ${entry.entry_date}`}
                         type="button"
                       >
-                        Edit
+                        <PencilIcon />
                       </button>
-                      <button
-                        className="btn btn-secondary"
-                        disabled={busyKey === `delete-entry-${entry.id}`}
-                        onClick={() => void handleDeleteEntry(entry.id)}
-                        type="button"
-                      >
-                        Delete
-                      </button>
+                      <div className="menu-shell">
+                        <button
+                          aria-expanded={openEntryActionsId === entry.id}
+                          aria-haspopup="menu"
+                          className="btn btn-secondary icon-btn icon-btn-wide"
+                          onClick={() =>
+                            setOpenEntryActionsId((current) => (current === entry.id ? null : entry.id))
+                          }
+                          type="button"
+                        >
+                          <EllipsisIcon />
+                          <span>Actions</span>
+                        </button>
+                        {openEntryActionsId === entry.id ? (
+                          <div className="menu-popover" role="menu">
+                            <button
+                              className="menu-item-btn"
+                              disabled={busyKey === `delete-entry-${entry.id}`}
+                              onClick={() => void handleDeleteEntry(entry.id)}
+                              role="menuitem"
+                              type="button"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 ))}

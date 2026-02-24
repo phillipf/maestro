@@ -183,6 +183,41 @@ select {
   color: #133226;
 }
 
+.icon-btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 2.4rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.icon-btn-wide {
+  min-width: auto;
+  padding-inline: 0.7rem;
+}
+
+.icon-svg {
+  display: block;
+  height: 1rem;
+  width: 1rem;
+}
+
+.filter-badge {
+  align-items: center;
+  background: #1f6f56;
+  border-radius: 999px;
+  color: #f3faf7;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 1.15rem;
+  min-width: 1.15rem;
+  padding: 0 0.35rem;
+}
+
 .auth-shell {
   align-items: center;
   display: grid;
@@ -265,10 +300,55 @@ select {
   gap: 0.8rem;
 }
 
+.entity-title-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entity-title-link:hover {
+  color: #1d5d49;
+}
+
 .actions-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+.menu-shell {
+  position: relative;
+}
+
+.menu-popover {
+  background: #ffffff;
+  border: 1px solid #c4d1c5;
+  border-radius: 12px;
+  box-shadow: 0 10px 26px #30463b2a;
+  display: grid;
+  min-width: 10.5rem;
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 60;
+}
+
+.menu-item-btn {
+  background: #ffffff;
+  border: none;
+  color: #203f33;
+  cursor: pointer;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+}
+
+.menu-item-btn:hover {
+  background: #edf3ee;
+}
+
+.menu-item-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .section-head {
@@ -581,6 +661,22 @@ select {
   justify-content: start;
 }
 
+.modal-overlay {
+  align-items: center;
+  background: #10251f80;
+  display: grid;
+  inset: 0;
+  padding: 1rem;
+  position: fixed;
+  z-index: 200;
+}
+
+.modal-card {
+  margin: 0 auto;
+  max-width: 560px;
+  width: min(100%, 560px);
+}
+
 @media (max-width: 880px) {
   .topbar {
     gap: 1.2rem;
@@ -603,6 +699,11 @@ select {
   .entry-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .menu-popover {
+    left: 0;
+    right: auto;
   }
 }
 

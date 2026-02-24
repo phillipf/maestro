@@ -21,6 +21,7 @@ import type {
   OutputStatus,
   Weekday,
 } from './types'
+import { EllipsisIcon, FunnelIcon, PencilIcon } from '../../app/ui/ActionIcons'
 
 type StatusFilter = 'all' | OutcomeStatus
 
@@ -181,7 +182,10 @@ export function OutcomesPage() {
   const [editingOutcomeId, setEditingOutcomeId] = useState<string | null>(null)
   const [editingOutcomeDraft, setEditingOutcomeDraft] = useState<OutcomeDraft | null>(null)
   const [showCreateOutcomeForm, setShowCreateOutcomeForm] = useState(false)
+  const [showFilterPanel, setShowFilterPanel] = useState(false)
   const [expandedAddOutputOutcomeId, setExpandedAddOutputOutcomeId] = useState<string | null>(null)
+  const [openOutcomeActionsId, setOpenOutcomeActionsId] = useState<string | null>(null)
+  const [openOutputActionsId, setOpenOutputActionsId] = useState<string | null>(null)
 
   const [outputDrafts, setOutputDrafts] = useState<Record<string, OutputDraft>>({})
   const [editingOutputId, setEditingOutputId] = useState<string | null>(null)
@@ -206,6 +210,43 @@ export function OutcomesPage() {
     void loadData()
   }, [])
 
+  useEffect(() => {
+    if (!openOutcomeActionsId && !openOutputActionsId) {
+      return
+    }
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return
+      }
+
+      if (event.target.closest('.menu-shell')) {
+        return
+      }
+
+      setOpenOutcomeActionsId(null)
+      setOpenOutputActionsId(null)
+    }
+
+    window.addEventListener('click', handleDocumentClick)
+    return () => window.removeEventListener('click', handleDocumentClick)
+  }, [openOutcomeActionsId, openOutputActionsId])
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') {
+        return
+      }
+
+      setOpenOutcomeActionsId(null)
+      setOpenOutputActionsId(null)
+      setShowFilterPanel(false)
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
+
   const outputsByOutcome = useMemo(() => {
     return outputs.reduce<Record<string, OutputRow[]>>((acc, output) => {
       const list = acc[output.outcome_id] ?? []
@@ -222,6 +263,8 @@ export function OutcomesPage() {
 
     return outcomes.filter((outcome) => outcome.status === filter)
   }, [filter, outcomes])
+
+  const activeFilterCount = filter === 'all' ? 0 : 1
 
   function ensureDraftForOutcome(outcomeId: string): OutputDraft {
     return outputDrafts[outcomeId] ?? makeDefaultOutputDraft()
@@ -288,6 +331,7 @@ export function OutcomesPage() {
   }
 
   function beginOutcomeEdit(outcome: OutcomeRow) {
+    setOpenOutcomeActionsId(null)
     setEditingOutcomeId(outcome.id)
     setEditingOutcomeDraft({
       title: outcome.title,
@@ -325,6 +369,7 @@ export function OutcomesPage() {
   }
 
   async function handleOutcomeStatus(outcome: OutcomeRow, status: OutcomeStatus) {
+    setOpenOutcomeActionsId(null)
     setBusyKey(`outcome-status-${outcome.id}`)
     setErrorMessage(null)
 
@@ -375,6 +420,7 @@ export function OutcomesPage() {
   }
 
   function beginOutputEdit(output: OutputRow) {
+    setOpenOutputActionsId(null)
     setEditingOutputId(output.id)
     setDraftForOutcome(output.id, outputToDraft(output))
   }
@@ -440,6 +486,7 @@ export function OutcomesPage() {
   }
 
   async function handleOutputStatus(output: OutputRow, status: OutputStatus) {
+    setOpenOutputActionsId(null)
     setBusyKey(`output-status-${output.id}`)
     setErrorMessage(null)
 
@@ -486,21 +533,33 @@ export function OutcomesPage() {
 
       {errorMessage ? <p className="status-bad">{errorMessage}</p> : null}
 
-      <article className="panel stack-sm">
-        <div className="section-head">
-          <h2>Create outcome</h2>
-          <button
-            aria-controls="create-outcome-form"
-            aria-expanded={showCreateOutcomeForm}
-            className="btn btn-secondary"
-            onClick={() => setShowCreateOutcomeForm((current) => !current)}
-            type="button"
-          >
-            {showCreateOutcomeForm ? 'Close' : 'Add outcome'}
-          </button>
-        </div>
+      <article className="panel section-head">
+        <button
+          aria-controls="create-outcome-form"
+          aria-expanded={showCreateOutcomeForm}
+          className="btn"
+          onClick={() => setShowCreateOutcomeForm((current) => !current)}
+          type="button"
+        >
+          {showCreateOutcomeForm ? 'Close' : '+ Add outcome'}
+        </button>
 
-        {showCreateOutcomeForm ? (
+        <button
+          aria-controls="outcome-filter-panel"
+          aria-expanded={showFilterPanel}
+          className="btn btn-secondary icon-btn icon-btn-wide"
+          onClick={() => setShowFilterPanel((current) => !current)}
+          type="button"
+        >
+          <FunnelIcon />
+          <span>Filter</span>
+          {activeFilterCount > 0 ? <span className="filter-badge">{activeFilterCount}</span> : null}
+        </button>
+      </article>
+
+      {showCreateOutcomeForm ? (
+        <article className="panel stack-sm">
+          <h2>Create outcome</h2>
           <form className="field-grid form-disclosure" id="create-outcome-form" onSubmit={handleCreateOutcome}>
             <label className="form-row" htmlFor="outcome-title">
               Outcome title
@@ -538,24 +597,43 @@ export function OutcomesPage() {
               </button>
             </div>
           </form>
-        ) : null}
-      </article>
+        </article>
+      ) : null}
 
-      <article className="panel stack-sm">
-        <h2>Filter</h2>
-        <div className="tag-row">
-          {STATUS_FILTERS.map((item) => (
-            <button
-              className={`tag-btn${filter === item.value ? ' tag-btn-active' : ''}`}
-              key={item.value}
-              onClick={() => setFilter(item.value)}
-              type="button"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </article>
+      {showFilterPanel ? (
+        <article className="panel stack-sm form-disclosure" id="outcome-filter-panel">
+          <div className="section-head">
+            <h2>Filter outcomes</h2>
+            {activeFilterCount > 0 ? (
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setFilter('all')
+                  setShowFilterPanel(false)
+                }}
+                type="button"
+              >
+                Clear filter
+              </button>
+            ) : null}
+          </div>
+          <div className="tag-row">
+            {STATUS_FILTERS.map((item) => (
+              <button
+                className={`tag-btn${filter === item.value ? ' tag-btn-active' : ''}`}
+                key={item.value}
+                onClick={() => {
+                  setFilter(item.value)
+                  setShowFilterPanel(false)
+                }}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </article>
+      ) : null}
 
       <div className="stack">
         {visibleOutcomes.length === 0 ? (
@@ -616,7 +694,11 @@ export function OutcomesPage() {
                     </div>
                   ) : (
                     <>
-                      <h2>{outcome.title}</h2>
+                      <h2>
+                        <Link className="entity-title-link" to={`/outcomes/${outcome.id}`}>
+                          {outcome.title}
+                        </Link>
+                      </h2>
                       <p className="muted">{outcome.category || 'No category'}</p>
                     </>
                   )}
@@ -639,28 +721,47 @@ export function OutcomesPage() {
                     </>
                   ) : (
                     <>
-                      <Link className="btn btn-secondary" to={`/outcomes/${outcome.id}`}>
-                        Open detail
-                      </Link>
                       <button
-                        className="btn btn-secondary"
+                        aria-label={`Edit ${outcome.title}`}
+                        className="btn btn-secondary icon-btn"
                         onClick={() => beginOutcomeEdit(outcome)}
+                        title={`Edit ${outcome.title}`}
                         type="button"
                       >
-                        Edit
+                        <PencilIcon />
                       </button>
-
-                      {outcomeStatusActions(outcome.status).map((status) => (
+                      <div className="menu-shell">
                         <button
-                          className="btn btn-secondary"
-                          disabled={busyKey === `outcome-status-${outcome.id}`}
-                          key={`${outcome.id}-${status}`}
-                          onClick={() => void handleOutcomeStatus(outcome, status)}
+                          aria-expanded={openOutcomeActionsId === outcome.id}
+                          aria-haspopup="menu"
+                          className="btn btn-secondary icon-btn icon-btn-wide"
+                          onClick={() =>
+                            setOpenOutcomeActionsId((current) =>
+                              current === outcome.id ? null : outcome.id,
+                            )
+                          }
                           type="button"
                         >
-                          {statusButtonLabel(status)}
+                          <EllipsisIcon />
+                          <span>Actions</span>
                         </button>
-                      ))}
+                        {openOutcomeActionsId === outcome.id ? (
+                          <div className="menu-popover" role="menu">
+                            {outcomeStatusActions(outcome.status).map((status) => (
+                              <button
+                                className="menu-item-btn"
+                                disabled={busyKey === `outcome-status-${outcome.id}`}
+                                key={`${outcome.id}-${status}`}
+                                onClick={() => void handleOutcomeStatus(outcome, status)}
+                                role="menuitem"
+                                type="button"
+                              >
+                                {statusButtonLabel(status)}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     </>
                   )}
                 </div>
@@ -711,24 +812,46 @@ export function OutcomesPage() {
                             ) : (
                               <>
                                 <button
-                                  className="btn btn-secondary"
+                                  aria-label={`Edit ${output.description}`}
+                                  className="btn btn-secondary icon-btn"
                                   onClick={() => beginOutputEdit(output)}
+                                  title={`Edit ${output.description}`}
                                   type="button"
                                 >
-                                  Edit
+                                  <PencilIcon />
                                 </button>
-
-                                {outputStatusActions(output.status).map((status) => (
+                                <div className="menu-shell">
                                   <button
-                                    className="btn btn-secondary"
-                                    disabled={busyKey === `output-status-${output.id}`}
-                                    key={`${output.id}-${status}`}
-                                    onClick={() => void handleOutputStatus(output, status)}
+                                    aria-expanded={openOutputActionsId === output.id}
+                                    aria-haspopup="menu"
+                                    className="btn btn-secondary icon-btn icon-btn-wide"
+                                    onClick={() =>
+                                      setOpenOutputActionsId((current) =>
+                                        current === output.id ? null : output.id,
+                                      )
+                                    }
                                     type="button"
                                   >
-                                    {statusButtonLabel(status)}
+                                    <EllipsisIcon />
+                                    <span>Actions</span>
                                   </button>
-                                ))}
+                                  {openOutputActionsId === output.id ? (
+                                    <div className="menu-popover" role="menu">
+                                      {outputStatusActions(output.status).map((status) => (
+                                        <button
+                                          className="menu-item-btn"
+                                          disabled={busyKey === `output-status-${output.id}`}
+                                          key={`${output.id}-${status}`}
+                                          onClick={() => void handleOutputStatus(output, status)}
+                                          role="menuitem"
+                                          type="button"
+                                        >
+                                          {statusButtonLabel(status)}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
                               </>
                             )}
                           </div>

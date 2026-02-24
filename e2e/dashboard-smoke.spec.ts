@@ -567,16 +567,39 @@ test('auth + output logging + skill logging + completion reset cleanup', async (
 
   await expect(page.getByRole('heading', { name: 'Today', exact: true })).toBeVisible()
   await expect(page.getByText('Practice guitar')).toBeVisible()
+  const outputCard = page.locator('article.output-row').filter({ hasText: 'Practice guitar' }).first()
 
   await page.getByRole('button', { name: 'Mark done' }).click()
-  await expect(page.getByRole('button', { name: 'Log skills worked' })).toBeVisible()
+  await expect
+    .poll(async () => {
+      await outputCard.getByRole('button', { name: 'Actions' }).click()
+      await expect(outputCard.getByRole('menuitem', { name: 'Add note' })).toBeVisible()
+      const count = await outputCard.getByRole('menuitem', { name: /skills worked/i }).count()
+      await page.keyboard.press('Escape')
+      return count
+    })
+    .toBe(1)
 
-  await page.getByRole('button', { name: 'Log skills worked' }).click()
+  await outputCard.getByRole('button', { name: 'Actions' }).click()
+  await expect(outputCard.getByRole('menuitem', { name: 'Add note' })).toBeVisible()
+  await outputCard.getByRole('menuitem', { name: /skills worked/i }).click()
   await page.locator('#skill-output-1-skill-1').check()
   await page.locator('#confidence-output-1-skill-1').fill('4')
   await page.getByRole('button', { name: 'Save skills' }).click()
 
-  await page.getByRole('button', { name: 'Log skills worked' }).click()
+  await expect
+    .poll(async () => {
+      await outputCard.getByRole('button', { name: 'Actions' }).click()
+      await expect(outputCard.getByRole('menuitem', { name: 'Add note' })).toBeVisible()
+      const count = await outputCard.getByRole('menuitem', { name: /skills worked/i }).count()
+      await page.keyboard.press('Escape')
+      return count
+    })
+    .toBe(1)
+
+  await outputCard.getByRole('button', { name: 'Actions' }).click()
+  await expect(outputCard.getByRole('menuitem', { name: 'Add note' })).toBeVisible()
+  await outputCard.getByRole('menuitem', { name: /skills worked/i }).click()
   await expect(page.locator('#skill-output-1-skill-1')).toBeChecked()
   await expect(page.locator('#confidence-output-1-skill-1')).toHaveValue('4')
 
@@ -585,7 +608,15 @@ test('auth + output logging + skill logging + completion reset cleanup', async (
 
   await page.locator('#completed-output-1').fill('0')
   await page.getByRole('button', { name: 'Save log' }).click()
-  await expect(page.getByRole('button', { name: 'Log skills worked' })).toHaveCount(0)
+  await expect
+    .poll(async () => {
+      await outputCard.getByRole('button', { name: 'Actions' }).click()
+      await expect(outputCard.getByRole('menuitem', { name: 'Add note' })).toBeVisible()
+      const count = await outputCard.getByRole('menuitem', { name: /skills worked/i }).count()
+      await page.keyboard.press('Escape')
+      return count
+    })
+    .toBe(0)
 
   const state = await page.evaluate(() => {
     interface MaestroWindow extends Window {

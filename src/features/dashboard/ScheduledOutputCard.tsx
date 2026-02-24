@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ActionLogLookupRow } from './dashboardApi'
@@ -11,6 +11,7 @@ import {
 } from './dashboardWorkflows'
 import type { DashboardOutput } from './types'
 import type { SkillItemRow, SkillPriority } from '../skills/types'
+import { EllipsisIcon } from '../../app/ui/ActionIcons'
 
 type ScheduledOutput = {
   outcomeId: string
@@ -77,6 +78,40 @@ export function ScheduledOutputCard({
   const { output, outcomeId, outcomeTitle } = row
   const showSkillPrompt = Boolean(actionLog && actionLog.completed > 0 && hasSkills)
   const [showNotesField, setShowNotesField] = useState(() => draft.notes.trim().length > 0)
+  const [showActionsMenu, setShowActionsMenu] = useState(false)
+
+  useEffect(() => {
+    if (!showActionsMenu) {
+      return
+    }
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return
+      }
+
+      if (event.target.closest('.scheduled-output-actions')) {
+        return
+      }
+
+      setShowActionsMenu(false)
+    }
+
+    window.addEventListener('click', handleDocumentClick)
+    return () => window.removeEventListener('click', handleDocumentClick)
+  }, [showActionsMenu])
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowActionsMenu(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
+
   const adjustDraftNumber = (key: 'completed' | 'total', delta: number) => {
     const nextValue = Math.max(0, draft[key] + delta)
     onSetLogDraftValue(output.id, key, nextValue)
@@ -115,6 +150,48 @@ export function ScheduledOutputCard({
         >
           Mark missed
         </button>
+
+        <div className="menu-shell scheduled-output-actions">
+          <button
+            aria-expanded={showActionsMenu}
+            aria-haspopup="menu"
+            className="btn btn-secondary icon-btn icon-btn-wide"
+            onClick={() => setShowActionsMenu((current) => !current)}
+            type="button"
+          >
+            <EllipsisIcon />
+            <span>Actions</span>
+          </button>
+          {showActionsMenu ? (
+            <div className="menu-popover" role="menu">
+              <button
+                className="menu-item-btn"
+                onClick={() => {
+                  setShowActionsMenu(false)
+                  setShowNotesField((current) => !current)
+                }}
+                role="menuitem"
+                type="button"
+              >
+                {notesVisible ? 'Hide note' : 'Add note'}
+              </button>
+              {showSkillPrompt ? (
+                <button
+                  className="menu-item-btn"
+                  disabled={isSkillPanelBusy}
+                  onClick={() => {
+                    setShowActionsMenu(false)
+                    void onToggleSkillPanel(row)
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  {expandedSkillOutputId === output.id ? 'Hide skills worked' : 'Log skills worked'}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="action-form-grid">
@@ -187,21 +264,9 @@ export function ScheduledOutputCard({
         </label>
       </div>
 
-      <div className="section-head">
-        <p className="muted">Notes (optional)</p>
-        <button
-          aria-controls={`notes-panel-${output.id}`}
-          aria-expanded={notesVisible}
-          className="btn btn-secondary"
-          onClick={() => setShowNotesField((current) => !current)}
-          type="button"
-        >
-          {notesVisible ? 'Hide note' : 'Add note'}
-        </button>
-      </div>
-
       {notesVisible ? (
         <label className="form-row" htmlFor={`notes-${output.id}`} id={`notes-panel-${output.id}`}>
+          Notes (optional)
           <textarea
             id={`notes-${output.id}`}
             maxLength={500}
@@ -221,199 +286,188 @@ export function ScheduledOutputCard({
         {isSaving ? 'Saving...' : 'Save log'}
       </button>
 
-      {showSkillPrompt ? (
+      {showSkillPrompt && expandedSkillOutputId === output.id ? (
         <div className="skill-log-shell stack-sm">
-          <button
-            className="btn btn-secondary"
-            disabled={isSkillPanelBusy}
-            onClick={() => void onToggleSkillPanel(row)}
-            type="button"
-          >
-            {expandedSkillOutputId === output.id ? 'Hide skills worked' : 'Log skills worked'}
-          </button>
+          <div className="skill-log-panel stack-sm">
+            {suggested.length > 0 ? (
+              <div className="stack-xs">
+                <p className="muted">Suggested today</p>
+                {suggested.map((item) => {
+                  const skill = item.skill
+                  const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
 
-          {expandedSkillOutputId === output.id ? (
-            <div className="skill-log-panel stack-sm">
-              {suggested.length > 0 ? (
-                <div className="stack-xs">
-                  <p className="muted">Suggested today</p>
-                  {suggested.map((item) => {
-                    const skill = item.skill
-                    const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
+                  return (
+                    <div className="skill-row" key={`${output.id}-${skill.id}`}>
+                      <label className="toggle-row" htmlFor={`skill-${output.id}-${skill.id}`}>
+                        <input
+                          checked={draftRow.selected}
+                          id={`skill-${output.id}-${skill.id}`}
+                          onChange={(event) =>
+                            onSetSkillDraftValue(
+                              output.id,
+                              skill.id,
+                              'selected',
+                              event.target.checked,
+                            )
+                          }
+                          type="checkbox"
+                        />
+                        {skill.name} <span className="hint">(priority {scoreLabel(item.finalScore)})</span>
+                      </label>
 
-                    return (
-                      <div className="skill-row" key={`${output.id}-${skill.id}`}>
-                        <label className="toggle-row" htmlFor={`skill-${output.id}-${skill.id}`}>
-                          <input
-                            checked={draftRow.selected}
-                            id={`skill-${output.id}-${skill.id}`}
-                            onChange={(event) =>
-                              onSetSkillDraftValue(
-                                output.id,
-                                skill.id,
-                                'selected',
-                                event.target.checked,
-                              )
-                            }
-                            type="checkbox"
-                          />
-                          {skill.name} <span className="hint">(priority {scoreLabel(item.finalScore)})</span>
-                        </label>
+                      {draftRow.selected ? (
+                        <div className="skill-mini-form">
+                          <label
+                            className="form-row form-row-compact"
+                            htmlFor={`confidence-${output.id}-${skill.id}`}
+                          >
+                            Confidence (1-5)
+                            <input
+                              id={`confidence-${output.id}-${skill.id}`}
+                              max={5}
+                              min={1}
+                              onChange={(event) =>
+                                onSetSkillDraftValue(
+                                  output.id,
+                                  skill.id,
+                                  'confidence',
+                                  Number(event.target.value),
+                                )
+                              }
+                              type="number"
+                              value={draftRow.confidence}
+                            />
+                          </label>
 
-                        {draftRow.selected ? (
-                          <div className="skill-mini-form">
+                          {skill.target_label && skill.target_value !== null ? (
                             <label
                               className="form-row form-row-compact"
-                              htmlFor={`confidence-${output.id}-${skill.id}`}
+                              htmlFor={`target-result-${output.id}-${skill.id}`}
                             >
-                              Confidence (1-5)
+                              {skill.target_label}
                               <input
-                                id={`confidence-${output.id}-${skill.id}`}
-                                max={5}
-                                min={1}
+                                id={`target-result-${output.id}-${skill.id}`}
                                 onChange={(event) =>
                                   onSetSkillDraftValue(
                                     output.id,
                                     skill.id,
-                                    'confidence',
-                                    Number(event.target.value),
+                                    'targetResult',
+                                    event.target.value,
                                   )
                                 }
+                                step="any"
                                 type="number"
-                                value={draftRow.confidence}
+                                value={draftRow.targetResult}
                               />
                             </label>
-
-                            {skill.target_label && skill.target_value !== null ? (
-                              <label
-                                className="form-row form-row-compact"
-                                htmlFor={`target-result-${output.id}-${skill.id}`}
-                              >
-                                {skill.target_label}
-                                <input
-                                  id={`target-result-${output.id}-${skill.id}`}
-                                  onChange={(event) =>
-                                    onSetSkillDraftValue(
-                                      output.id,
-                                      skill.id,
-                                      'targetResult',
-                                      event.target.value,
-                                    )
-                                  }
-                                  step="any"
-                                  type="number"
-                                  value={draftRow.targetResult}
-                                />
-                              </label>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null}
-
-              {additionalSkills.length > 0 ? (
-                <div className="stack-xs">
-                  <p className="muted">All skills</p>
-                  {additionalSkills.map((skill) => {
-                    const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
-
-                    return (
-                      <div className="skill-row" key={`${output.id}-all-${skill.id}`}>
-                        <label className="toggle-row" htmlFor={`skill-all-${output.id}-${skill.id}`}>
-                          <input
-                            checked={draftRow.selected}
-                            id={`skill-all-${output.id}-${skill.id}`}
-                            onChange={(event) =>
-                              onSetSkillDraftValue(
-                                output.id,
-                                skill.id,
-                                'selected',
-                                event.target.checked,
-                              )
-                            }
-                            type="checkbox"
-                          />
-                          {skill.name}{' '}
-                          <span className="hint">(priority {scoreLabel(skillScoreById[skill.id])})</span>
-                        </label>
-
-                        {draftRow.selected ? (
-                          <div className="skill-mini-form">
-                            <label
-                              className="form-row form-row-compact"
-                              htmlFor={`confidence-all-${output.id}-${skill.id}`}
-                            >
-                              Confidence (1-5)
-                              <input
-                                id={`confidence-all-${output.id}-${skill.id}`}
-                                max={5}
-                                min={1}
-                                onChange={(event) =>
-                                  onSetSkillDraftValue(
-                                    output.id,
-                                    skill.id,
-                                    'confidence',
-                                    Number(event.target.value),
-                                  )
-                                }
-                                type="number"
-                                value={draftRow.confidence}
-                              />
-                            </label>
-
-                            {skill.target_label && skill.target_value !== null ? (
-                              <label
-                                className="form-row form-row-compact"
-                                htmlFor={`target-all-${output.id}-${skill.id}`}
-                              >
-                                {skill.target_label}
-                                <input
-                                  id={`target-all-${output.id}-${skill.id}`}
-                                  onChange={(event) =>
-                                    onSetSkillDraftValue(
-                                      output.id,
-                                      skill.id,
-                                      'targetResult',
-                                      event.target.value,
-                                    )
-                                  }
-                                  step="any"
-                                  type="number"
-                                  value={draftRow.targetResult}
-                                />
-                              </label>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null}
-
-              <div className="actions-row">
-                <button
-                  className="btn"
-                  disabled={isSkillPanelBusy}
-                  onClick={() => void onSaveSkillsForOutput(row)}
-                  type="button"
-                >
-                  {busyKey === `save-skills-${output.id}` ? 'Saving...' : 'Save skills'}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  disabled={isSkillPanelBusy}
-                  onClick={onCloseSkillPanel}
-                  type="button"
-                >
-                  Skip - just log output
-                </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
+            ) : null}
+
+            {additionalSkills.length > 0 ? (
+              <div className="stack-xs">
+                <p className="muted">All skills</p>
+                {additionalSkills.map((skill) => {
+                  const draftRow = drafts[skill.id] ?? createEmptySkillLogDraft()
+
+                  return (
+                    <div className="skill-row" key={`${output.id}-all-${skill.id}`}>
+                      <label className="toggle-row" htmlFor={`skill-all-${output.id}-${skill.id}`}>
+                        <input
+                          checked={draftRow.selected}
+                          id={`skill-all-${output.id}-${skill.id}`}
+                          onChange={(event) =>
+                            onSetSkillDraftValue(
+                              output.id,
+                              skill.id,
+                              'selected',
+                              event.target.checked,
+                            )
+                          }
+                          type="checkbox"
+                        />
+                        {skill.name}{' '}
+                        <span className="hint">(priority {scoreLabel(skillScoreById[skill.id])})</span>
+                      </label>
+
+                      {draftRow.selected ? (
+                        <div className="skill-mini-form">
+                          <label
+                            className="form-row form-row-compact"
+                            htmlFor={`confidence-all-${output.id}-${skill.id}`}
+                          >
+                            Confidence (1-5)
+                            <input
+                              id={`confidence-all-${output.id}-${skill.id}`}
+                              max={5}
+                              min={1}
+                              onChange={(event) =>
+                                onSetSkillDraftValue(
+                                  output.id,
+                                  skill.id,
+                                  'confidence',
+                                  Number(event.target.value),
+                                )
+                              }
+                              type="number"
+                              value={draftRow.confidence}
+                            />
+                          </label>
+
+                          {skill.target_label && skill.target_value !== null ? (
+                            <label
+                              className="form-row form-row-compact"
+                              htmlFor={`target-all-${output.id}-${skill.id}`}
+                            >
+                              {skill.target_label}
+                              <input
+                                id={`target-all-${output.id}-${skill.id}`}
+                                onChange={(event) =>
+                                  onSetSkillDraftValue(
+                                    output.id,
+                                    skill.id,
+                                    'targetResult',
+                                    event.target.value,
+                                  )
+                                }
+                                step="any"
+                                type="number"
+                                value={draftRow.targetResult}
+                              />
+                            </label>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+
+            <div className="actions-row">
+              <button
+                className="btn"
+                disabled={isSkillPanelBusy}
+                onClick={() => void onSaveSkillsForOutput(row)}
+                type="button"
+              >
+                {busyKey === `save-skills-${output.id}` ? 'Saving...' : 'Save skills'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                disabled={isSkillPanelBusy}
+                onClick={onCloseSkillPanel}
+                type="button"
+              >
+                Skip - just log output
+              </button>
             </div>
-          ) : null}
+          </div>
         </div>
       ) : null}
     </article>

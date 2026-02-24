@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ActionLogLookupRow } from './dashboardApi'
@@ -12,6 +12,7 @@ import {
 import type { DashboardOutput } from './types'
 import type { SkillItemRow, SkillPriority } from '../skills/types'
 import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { useActionsMenu } from '../../app/ui/useActionsMenu'
 import { trackUIEvent } from '../../lib/uiTelemetry'
 
 type ScheduledOutput = {
@@ -81,37 +82,15 @@ export function ScheduledOutputCard({
   const [showNotesField, setShowNotesField] = useState(() => draft.notes.trim().length > 0)
   const [showActionsMenu, setShowActionsMenu] = useState(false)
 
-  useEffect(() => {
-    if (!showActionsMenu) {
-      return
-    }
-
-    function handleDocumentClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return
-      }
-
-      if (event.target.closest('.scheduled-output-actions')) {
-        return
-      }
-
-      setShowActionsMenu(false)
-    }
-
-    window.addEventListener('click', handleDocumentClick)
-    return () => window.removeEventListener('click', handleDocumentClick)
-  }, [showActionsMenu])
-
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setShowActionsMenu(false)
-      }
-    }
-
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+  const closeActionsMenu = useCallback(() => {
+    setShowActionsMenu(false)
   }, [])
+
+  useActionsMenu({
+    isOpen: showActionsMenu,
+    menuSelector: '.scheduled-output-actions',
+    onClose: closeActionsMenu,
+  })
 
   const adjustDraftNumber = (key: 'completed' | 'total', delta: number) => {
     const nextValue = Math.max(0, draft[key] + delta)

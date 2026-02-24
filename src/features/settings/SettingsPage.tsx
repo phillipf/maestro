@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { ChevronIcon, EllipsisIcon } from '../../app/ui/ActionIcons'
+import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { DisclosureToggleButton } from '../../app/ui/DisclosureToggleButton'
+import { useActionsMenu } from '../../app/ui/useActionsMenu'
 import { clearUIEvents, readUIEventCounts, trackUIEvent } from '../../lib/uiTelemetry'
 import { useAuth } from '../auth/useAuth'
 import {
@@ -100,33 +102,14 @@ export function SettingsPage() {
     setTelemetrySummary(Object.entries(counts).sort((left, right) => right[1] - left[1]))
   }, [showTelemetryPanel, telemetryVersion])
 
-  useEffect(() => {
-    if (!openActionsPanel) {
-      return
-    }
+  const closeActionsPanel = useCallback(() => {
+    setOpenActionsPanel(null)
+  }, [])
 
-    function handlePointerDown(event: PointerEvent) {
-      if (event.target instanceof Element && event.target.closest('.menu-shell')) {
-        return
-      }
-
-      setOpenActionsPanel(null)
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setOpenActionsPanel(null)
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [openActionsPanel])
+  useActionsMenu({
+    isOpen: Boolean(openActionsPanel),
+    onClose: closeActionsPanel,
+  })
 
   async function handleSaveSettings() {
     if (!settings || !draft) {
@@ -261,12 +244,11 @@ export function SettingsPage() {
       <article className="panel stack-sm">
         <div className="section-head">
           <h2>Reminders (best-effort in v1)</h2>
-          <button
-            aria-controls="settings-reminders-panel"
-            aria-expanded={showRemindersPanel}
-            aria-label={`${showRemindersPanel ? 'Collapse' : 'Expand'} reminders settings`}
-            className="btn btn-secondary icon-btn"
-            onClick={() =>
+          <DisclosureToggleButton
+            controlsId="settings-reminders-panel"
+            expanded={showRemindersPanel}
+            label="reminders settings"
+            onToggle={() =>
               setShowRemindersPanel((current) => {
                 const nextState = !current
                 if (!nextState && openActionsPanel === 'reminders') {
@@ -279,11 +261,7 @@ export function SettingsPage() {
                 return nextState
               })
             }
-            title={`${showRemindersPanel ? 'Collapse' : 'Expand'} reminders settings`}
-            type="button"
-          >
-            <ChevronIcon open={showRemindersPanel} />
-          </button>
+          />
         </div>
 
         {showRemindersPanel ? (
@@ -408,12 +386,11 @@ export function SettingsPage() {
       <article className="panel stack-sm">
         <div className="section-head">
           <h2>Data controls</h2>
-          <button
-            aria-controls="settings-data-controls"
-            aria-expanded={showDataControlsPanel}
-            aria-label={`${showDataControlsPanel ? 'Collapse' : 'Expand'} data controls`}
-            className="btn btn-secondary icon-btn"
-            onClick={() =>
+          <DisclosureToggleButton
+            controlsId="settings-data-controls"
+            expanded={showDataControlsPanel}
+            label="data controls"
+            onToggle={() =>
               setShowDataControlsPanel((current) => {
                 const nextState = !current
                 trackUIEvent('settings_panel_toggle', {
@@ -423,11 +400,7 @@ export function SettingsPage() {
                 return nextState
               })
             }
-            title={`${showDataControlsPanel ? 'Collapse' : 'Expand'} data controls`}
-            type="button"
-          >
-            <ChevronIcon open={showDataControlsPanel} />
-          </button>
+          />
         </div>
 
         {showDataControlsPanel ? (
@@ -451,12 +424,11 @@ export function SettingsPage() {
       <article className="panel stack-sm">
         <div className="section-head">
           <h2>UI telemetry (local)</h2>
-          <button
-            aria-controls="settings-telemetry-panel"
-            aria-expanded={showTelemetryPanel}
-            aria-label={`${showTelemetryPanel ? 'Collapse' : 'Expand'} UI telemetry`}
-            className="btn btn-secondary icon-btn"
-            onClick={() =>
+          <DisclosureToggleButton
+            controlsId="settings-telemetry-panel"
+            expanded={showTelemetryPanel}
+            label="UI telemetry"
+            onToggle={() =>
               setShowTelemetryPanel((current) => {
                 const nextState = !current
                 if (!nextState && openActionsPanel === 'telemetry') {
@@ -469,11 +441,7 @@ export function SettingsPage() {
                 return nextState
               })
             }
-            title={`${showTelemetryPanel ? 'Collapse' : 'Expand'} UI telemetry`}
-            type="button"
-          >
-            <ChevronIcon open={showTelemetryPanel} />
-          </button>
+          />
         </div>
 
         {showTelemetryPanel ? (

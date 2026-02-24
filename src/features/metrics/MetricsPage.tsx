@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { formatLocalDate } from '../../lib/date'
 import { EllipsisIcon, PencilIcon } from '../../app/ui/ActionIcons'
+import { useActionsMenu } from '../../app/ui/useActionsMenu'
 import { trackUIEvent } from '../../lib/uiTelemetry'
 import {
   createMetric,
@@ -94,41 +95,15 @@ export function MetricsPage() {
     void loadMetrics()
   }, [])
 
-  useEffect(() => {
-    if (!openMetricActionsId && !openEntryActionsId) {
-      return
-    }
-
-    function handleDocumentClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return
-      }
-
-      if (event.target.closest('.menu-shell')) {
-        return
-      }
-
-      setOpenMetricActionsId(null)
-      setOpenEntryActionsId(null)
-    }
-
-    window.addEventListener('click', handleDocumentClick)
-    return () => window.removeEventListener('click', handleDocumentClick)
-  }, [openMetricActionsId, openEntryActionsId])
-
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key !== 'Escape') {
-        return
-      }
-
-      setOpenMetricActionsId(null)
-      setOpenEntryActionsId(null)
-    }
-
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+  const closeActionsMenu = useCallback(() => {
+    setOpenMetricActionsId(null)
+    setOpenEntryActionsId(null)
   }, [])
+
+  useActionsMenu({
+    isOpen: Boolean(openMetricActionsId || openEntryActionsId),
+    onClose: closeActionsMenu,
+  })
 
   const entriesByMetric = useMemo(() => {
     return (payload?.entries ?? []).reduce<Record<string, MetricEntryRow[]>>((acc, entry) => {

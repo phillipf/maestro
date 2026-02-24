@@ -1,6 +1,8 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { DisclosureToggleButton } from '../../app/ui/DisclosureToggleButton'
+import { useActionsMenu } from '../../app/ui/useActionsMenu'
 import {
   createOutcome,
   createOutput,
@@ -21,7 +23,7 @@ import type {
   OutputStatus,
   Weekday,
 } from './types'
-import { ChevronIcon, EllipsisIcon, FunnelIcon, PencilIcon } from '../../app/ui/ActionIcons'
+import { EllipsisIcon, FunnelIcon, PencilIcon } from '../../app/ui/ActionIcons'
 import { trackUIEvent } from '../../lib/uiTelemetry'
 
 type StatusFilter = 'all' | OutcomeStatus
@@ -211,42 +213,30 @@ export function OutcomesPage() {
     void loadData()
   }, [])
 
+  const closeActionsMenus = useCallback(() => {
+    setOpenOutcomeActionsId(null)
+    setOpenOutputActionsId(null)
+  }, [])
+
+  useActionsMenu({
+    isOpen: Boolean(openOutcomeActionsId || openOutputActionsId),
+    onClose: closeActionsMenus,
+  })
+
   useEffect(() => {
-    if (!openOutcomeActionsId && !openOutputActionsId) {
+    if (!showFilterPanel) {
       return
     }
 
-    function handleDocumentClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return
-      }
-
-      if (event.target.closest('.menu-shell')) {
-        return
-      }
-
-      setOpenOutcomeActionsId(null)
-      setOpenOutputActionsId(null)
-    }
-
-    window.addEventListener('click', handleDocumentClick)
-    return () => window.removeEventListener('click', handleDocumentClick)
-  }, [openOutcomeActionsId, openOutputActionsId])
-
-  useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
-      if (event.key !== 'Escape') {
-        return
+      if (event.key === 'Escape') {
+        setShowFilterPanel(false)
       }
-
-      setOpenOutcomeActionsId(null)
-      setOpenOutputActionsId(null)
-      setShowFilterPanel(false)
     }
 
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [])
+  }, [showFilterPanel])
 
   const outputsByOutcome = useMemo(() => {
     return outputs.reduce<Record<string, OutputRow[]>>((acc, output) => {
@@ -594,7 +584,7 @@ export function OutcomesPage() {
               const next = !current
 
               if (next) {
-                trackUIEvent('outcomes.filter.open')
+                trackUIEvent('outcomes.filter.open', {})
               }
 
               return next
@@ -1032,14 +1022,11 @@ export function OutcomesPage() {
               <section className="stack-sm">
                 <div className="section-head">
                   <h3>Add output</h3>
-                  <button
-                    aria-controls={`add-output-form-${outcome.id}`}
-                    aria-expanded={expandedAddOutputOutcomeId === outcome.id}
-                    aria-label={`${
-                      expandedAddOutputOutcomeId === outcome.id ? 'Collapse' : 'Expand'
-                    } add output for ${outcome.title}`}
-                    className="btn btn-secondary icon-btn"
-                    onClick={() =>
+                  <DisclosureToggleButton
+                    controlsId={`add-output-form-${outcome.id}`}
+                    expanded={expandedAddOutputOutcomeId === outcome.id}
+                    label={`add output for ${outcome.title}`}
+                    onToggle={() =>
                       setExpandedAddOutputOutcomeId((current) => {
                         const next = current === outcome.id ? null : outcome.id
 
@@ -1053,13 +1040,7 @@ export function OutcomesPage() {
                         return next
                       })
                     }
-                    title={`${
-                      expandedAddOutputOutcomeId === outcome.id ? 'Collapse' : 'Expand'
-                    } add output for ${outcome.title}`}
-                    type="button"
-                  >
-                    <ChevronIcon open={expandedAddOutputOutcomeId === outcome.id} />
-                  </button>
+                  />
                 </div>
 
                 {expandedAddOutputOutcomeId === outcome.id ? (

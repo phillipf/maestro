@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { fetchOutcomeById } from '../outcomes/outcomesApi'
 import { EllipsisIcon } from '../../app/ui/ActionIcons'
+import { useActionsMenu } from '../../app/ui/useActionsMenu'
 import { trackUIEvent } from '../../lib/uiTelemetry'
 import { setSkillStage } from './skillsApi'
 import {
@@ -104,37 +105,14 @@ export function SkillDetailPage() {
     void loadData()
   }, [loadData])
 
-  useEffect(() => {
-    if (!showStageActions) {
-      return
-    }
-
-    function handleDocumentClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return
-      }
-
-      if (event.target.closest('.menu-shell')) {
-        return
-      }
-
-      setShowStageActions(false)
-    }
-
-    window.addEventListener('click', handleDocumentClick)
-    return () => window.removeEventListener('click', handleDocumentClick)
-  }, [showStageActions])
-
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setShowStageActions(false)
-      }
-    }
-
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+  const closeStageActionsMenu = useCallback(() => {
+    setShowStageActions(false)
   }, [])
+
+  useActionsMenu({
+    isOpen: showStageActions,
+    onClose: closeStageActionsMenu,
+  })
 
   const confidencePoints = useMemo(() => {
     return logs

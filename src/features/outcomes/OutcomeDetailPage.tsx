@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { useActionsMenu } from '../../app/ui/useActionsMenu'
 import {
   fetchOutcomeById,
   fetchOutputsByOutcome,
@@ -123,26 +124,14 @@ export function OutcomeDetailPage() {
     void loadData()
   }, [loadData])
 
-  useEffect(() => {
-    if (!openSkillActionsId) {
-      return
-    }
+  const closeSkillActionsMenu = useCallback(() => {
+    setOpenSkillActionsId(null)
+  }, [])
 
-    function handleDocumentClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return
-      }
-
-      if (event.target.closest('.menu-shell')) {
-        return
-      }
-
-      setOpenSkillActionsId(null)
-    }
-
-    window.addEventListener('click', handleDocumentClick)
-    return () => window.removeEventListener('click', handleDocumentClick)
-  }, [openSkillActionsId])
+  useActionsMenu({
+    isOpen: Boolean(openSkillActionsId),
+    onClose: closeSkillActionsMenu,
+  })
 
   useEffect(() => {
     if (!showAddSkillForm) {
@@ -158,17 +147,6 @@ export function OutcomeDetailPage() {
     window.addEventListener('keydown', handleKeydown)
     return () => window.removeEventListener('keydown', handleKeydown)
   }, [showAddSkillForm])
-
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setOpenSkillActionsId(null)
-      }
-    }
-
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [])
 
   const priorityQueue = useMemo(
     () => computePriorityQueue(skills, skillLogs),
